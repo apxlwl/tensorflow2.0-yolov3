@@ -13,11 +13,11 @@ opt = Options(None)
 args = opt.opt
 args.experiment_name = 'darknet_scrach'
 args.gpu_ids = '1'
-args.learning_rate = 0.001
+args.learning_rate = 0.002
 args.config_path='./configs/coco.json'
-args.resume="load_darknet"
-args.total_epoch=20
-args.log_iter=2000
+args.resume= 195460
+args.total_epoch=30
+args.log_iter=5000
 args.freeze_darknet=True
 
 with open(args.config_path,'r') as f:
@@ -27,8 +27,8 @@ criterion = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 # --------------criterion------------
 
 net = Yolonet(n_classes=80)
-for op in net.body.layers:
-  op.trainable = False
+#for op in net.body.layers:
+#  op.trainable = False
 optimizer = optimizers.SGD(learning_rate=args.learning_rate, momentum=0.9)
 
 
@@ -42,7 +42,7 @@ _Trainer = Trainer(args=args,
                    scheduler=scheduler,
                    )
 _Trainer.train()
-
+#
 # _Trainer._valid_epoch()
 
 # if (args.evaluate):

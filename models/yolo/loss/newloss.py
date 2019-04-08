@@ -4,6 +4,57 @@ class LossCalculator:
     self.anchors=anchors
     self.img_size=tf.shape(imgsize)
     self.class_num=classnum
+
+  def predict(self,feature_maps):
+    '''
+        Receive the returned feature_maps from `forward` function,
+        the produce the output predictions at the test stage.
+        '''
+    feature_map_1, feature_map_2, feature_map_3 = feature_maps
+    feature_map_anchors = [(feature_map_1, self.anchors[6:9]),
+                           (feature_map_2, self.anchors[3:6]),
+                           (feature_map_3, self.anchors[0:3])]
+    reorg_results = [self.reorg_layer(feature_map, anchors) for (feature_map, anchors) in feature_map_anchors]
+
+    def _reshape(result):
+      x_y_offset, boxes, conf_logits, prob_logits = result
+      grid_size = x_y_offset.shape.as_list()[:2]
+      boxes = tf.reshape(boxes, [-1, grid_size[0] * grid_size[1] * 3, 4])
+      conf_logits = tf.reshape(conf_logits, [-1, grid_size[0] * grid_size[1] * 3, 1])
+      prob_logits = tf.reshape(prob_logits, [-1, grid_size[0] * grid_size[1] * 3, self.class_num])
+      # shape: (take 416*416 input image and feature_map_1 for example)
+      # boxes: [N, 13*13*3, 4]
+      # conf_logits: [N, 13*13*3, 1]
+      # prob_logits: [N, 13*13*3, class_num]
+      return boxes, conf_logits, prob_logits
+
+    boxes_list, confs_list, probs_list = [], [], []
+    for result in reorg_results:
+      boxes, conf_logits, prob_logits = _reshape(result)
+      confs = tf.sigmoid(conf_logits)
+      probs = tf.sigmoid(prob_logits)
+      boxes_list.append(boxes)
+      confs_list.append(confs)
+      probs_list.append(probs)
+
+    # collect results on three scales
+    # take 416*416 input image for example:
+    # shape: [N, (13*13+26*26+52*52)*3, 4]
+    boxes = tf.concat(boxes_list, axis=1)
+    # shape: [N, (13*13+26*26+52*52)*3, 1]
+    confs = tf.concat(confs_list, axis=1)
+    # shape: [N, (13*13+26*26+52*52)*3, class_num]
+    probs = tf.concat(probs_list, axis=1)
+
+    center_x, center_y, width, height = tf.split(boxes, [1, 1, 1, 1], axis=-1)
+    x_min = center_x - width / 2
+    y_min = center_y - height / 2
+    x_max = center_x + width / 2
+    y_max = center_y + height / 2
+
+    boxes = tf.concat([x_min, y_min, x_max, y_max], axis=-1)
+
+    return boxes, confs, probs
   def compute_loss(self, y_pred, y_true):
     '''
     param:
@@ -33,6 +84,8 @@ class LossCalculator:
     grid_size = feature_map.shape.as_list()[1:3]  # [13, 13]
     # the downscale ratio in height and weight
     ratio = tf.cast(self.img_size / grid_size, tf.float32)
+    print(ratio)
+    assert 0
     # rescale the anchors to the feature_map
     # NOTE: the anchor is in [w, h] format!
     rescaled_anchors = [(anchor[0] / ratio[1], anchor[1] / ratio[0]) for anchor in anchors]
@@ -120,7 +173,7 @@ class LossCalculator:
     '''
     calc loss function from a certain scale
     '''
-
+#TODO 修改LOSS
     # size in [h, w] format! don't get messed up!
     grid_size = tf.shape(feature_map_i)[1:3]
     # the downscale ratio in height and weight
@@ -175,8 +228,8 @@ class LossCalculator:
                           x=tf.ones_like(true_tw_th), y=true_tw_th)
     pred_tw_th = tf.where(condition=tf.equal(pred_tw_th, 0),
                           x=tf.ones_like(pred_tw_th), y=pred_tw_th)
-    true_tw_th = tf.log(tf.clip_by_value(true_tw_th, 1e-9, 1e9))
-    pred_tw_th = tf.log(tf.clip_by_value(pred_tw_th, 1e-9, 1e9))
+    true_tw_th = tf.math.log(tf.clip_by_value(true_tw_th, 1e-9, 1e9))
+    pred_tw_th = tf.math.log(tf.clip_by_value(pred_tw_th, 1e-9, 1e9))
 
     # box size punishment:
     # box with smaller area has bigger weight. This is taken from the yolo darknet C source code.

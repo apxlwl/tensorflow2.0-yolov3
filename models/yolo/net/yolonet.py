@@ -33,9 +33,6 @@ class Yolonet(keras.Model):
 
   def call(self, input_tensor, training=False, mask=None):
     s3, s4, s5 = self.body(input_tensor, training)
-    # print(s3.shape) (1, 28, 28, 256)
-    # print(s4.shape) (1, 14, 14, 512)
-    # print(s5.shape) (1, 7, 7, 1024)
     f3,f4,f5 = self.head((s3, s4, s5), training)
     return f3,f4,f5
 

@@ -73,6 +73,7 @@ class BaseTrainer:
       # load_opti(self.optimizer, os.path.join(self.save_path, 'opti-best.pkl'.format(self.args.resume)))
     else:
       self.model.load_weights(os.path.join(self.save_path, 'model-iter{}.h5'.format(int(self.args.resume))))
+      self.global_iter = self.args.resume
       # load_opti(self.optimizer, os.path.join(self.save_path, 'opti-iter{}.pkl'.format(self.args.resume)))
     print("successfully load checkpoint {}".format(self.args.resume))
 

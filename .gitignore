@@ -3,4 +3,5 @@
 .idea/
 checkpoints/
 summary/
-
+compare/
+*.png

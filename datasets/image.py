@@ -17,23 +17,6 @@ def img_flip(img):
   return np.fliplr(img)
 
 
-def bbox_flip(bboxes, img_shape):
-  '''Flip bboxes horizontally.
-
-  Args
-  ---
-      bboxes: [..., 4]
-      img_shape: Tuple. (height, width)
-
-  Returns
-  ---
-      np.ndarray: the flipped bboxes.
-  '''
-  w = img_shape[1]
-  flipped = bboxes.copy()
-  flipped[..., 1] = w - bboxes[..., 3] - 1
-  flipped[..., 3] = w - bboxes[..., 1] - 1
-  return flipped
 
 def random_color_distort(src, brightness_delta=32, contrast_low=0.5, contrast_high=1.5,
                          saturation_low=0.5, saturation_high=1.5, hue_delta=18):

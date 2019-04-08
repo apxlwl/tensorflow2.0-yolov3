@@ -23,7 +23,6 @@ def postprocess_ouput(yolos, anchors, net_size,ori_shape,pad_scale, obj_thresh=0
   boxes = []
   image_h, image_w = ori_shape[:2]
   # 1. decode the output of the network
-  s=time.time()
   for i in range(len(yolos)):
     boxes += decode_netout(yolos[i], anchors[i], obj_thresh, net_size,pad_scale)
     # print(time.time()-s)
@@ -58,19 +57,22 @@ def decode_netout(netout, anchors, obj_thresh, net_size,pad_scale, nb_box=3):
         # 2. scale normalize
         x /= (n_cols*pad_scale[1])
         y /= (n_rows*pad_scale[0])
-        w /= (net_size*pad_scale[1])
-        h /= (net_size*pad_scale[0])
+        w /= (net_size[1]*pad_scale[1])
+        h /= (net_size[0]*pad_scale[0])
         if objectness > obj_thresh:
           box = BoundBox(x, y, np.clip(w,0,1), np.clip(h,0,1), objectness, classes)
           # box = BoundBox(x, y, w,h, objectness, classes)
           boxes.append(box)
 
+  box_numpy=[]
+  for box in boxes:
+    box_numpy.append(box.as_centroid())
+  print(len(box_numpy))
   return boxes
 
 
 def _decode_coords(netout, row, col, b, anchors):
   x, y, w, h = netout[row, col, b, :IDX_H + 1]
-
   x = col + _sigmoid(x)
   y = row + _sigmoid(y)
   w = anchors[2 * b + 0] * np.exp(w)

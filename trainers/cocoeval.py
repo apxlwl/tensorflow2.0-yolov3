@@ -1,12 +1,10 @@
 from datasets.pycocotools.coco import COCO
 from datasets.pycocotools.cocoeval import COCOeval
-import json
-from models.yolo.post_proc.decoder import postprocess_ouput
-from models.yolo.utils.box import boxes_to_array,to_minmax
 from utils.visualize import visualize_boxes
 import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
+from .yolo_loss import predict_yolo
+from PIL import Image
 class EvaluatorCOCO:
   def __init__(self,anchors,inputsize,threshold,idx2cate,cateNames):
     self.anchors=anchors
@@ -15,12 +13,15 @@ class EvaluatorCOCO:
     self.coco_imgIds=set([])
     self.coco_results=[]
     self.idx2cat=idx2cate
+    self.cat2idx= {int(v): int(k) for k, v in self.idx2cat.items()}
     self.cateNames=cateNames
     self.reset()
     self.visual_imgs=[]
+    self.cocoGt = COCO('/home/gwl/datasets/coco2017/annotations/instances_val2017.json')
   def reset(self):
     self.coco_imgIds=set([])
     self.coco_results=[]
+    self.visual_imgs=[]
   def append(self,grids,imgpath,padscale,orishape,visualize=False):
     grids = [grid.numpy() for grid in grids]
     padscale = padscale.numpy()
@@ -32,34 +33,49 @@ class EvaluatorCOCO:
       _grid = [feature[idx] for feature in grids]
       _padscale = padscale[idx]
       _orishape=orishape[idx]
-      _classboxes = postprocess_ouput(_grid, self.anchors, self.inputsize, _orishape,_padscale)
-      if len(_classboxes) > 0:
-        _boxes, _probs = boxes_to_array(_classboxes)
-        _boxes = to_minmax(_boxes)
-        _labels = np.array([b.get_label() for b in _classboxes])
-        _boxes = _boxes[_probs >= self.cls_threshold]
-        _labels = _labels[_probs >= self.cls_threshold]
-        _probs = _probs[_probs >= self.cls_threshold]
-      else:
-        _boxes, _labels, _probs = [], [], []
-      for i in range(len(_boxes)):
-        self.coco_imgIds.add(_image_id)
-        self.coco_results.append({
-          "image_id": _image_id,
-          "category_id": self.idx2cat[str(_labels[i])],
-          "bbox": [_boxes[i][0], _boxes[i][1], _boxes[i][2] - _boxes[i][0], _boxes[i][3] - _boxes[i][1]],
-          "score": float(_probs[i])
-        })
-      if visualize and len(self.visual_imgs)<10:
-        imshow = np.array(plt.imread(_imgpath))
-        visualize_boxes(image=imshow, boxes=_boxes, labels=_labels, probs=_probs, class_labels=self.cateNames)
-        self.visual_imgs.append(imshow)
+      _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale)
+      if _boxes is not None: #do have bboxes
+        _boxes,_scores,_labels = _boxes.numpy(),_scores.numpy(),_labels.numpy()
+        for i in range(_boxes.shape[0]):
+          self.coco_imgIds.add(_image_id)
+          self.coco_results.append({
+            "image_id": _image_id,
+            "category_id": self.idx2cat[str(_labels[i])],
+            "bbox": [_boxes[i][1], _boxes[i][0], _boxes[i][3] - _boxes[i][1], _boxes[i][2] - _boxes[i][0]],
+            "score": float(_scores[i])
+          })
+        if visualize and len(self.visual_imgs)<400:
+          imPre = np.array(Image.open(_imgpath).convert('RGB'))
+          imGT=imPre.copy()
+          annIDs=self.cocoGt.getAnnIds(imgIds=[_image_id])
+          boxGT=[]
+          labelGT=[]
+          scoreGT=[]
+          for id in annIDs:
+            ann=self.cocoGt.anns[id]
+            x,y,w,h=ann['bbox']
+            boxGT.append([y,x,h+y,w+x])
+            labelGT.append(self.cat2idx[ann['category_id']])
+            scoreGT.append(1.0)
 
+          visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
+          visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
+          whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.int8)
+          imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
+          self.visual_imgs.append(imshow)
+          import os
+          savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
+          plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
+          # plt.imshow(imshow)
+          # plt.show()
 
   def evaluate(self):
-    cocoGt = COCO('/home/gwl/datasets/coco2017/annotations/instances_val2017.json')
-    cocoDt = cocoGt.loadRes(self.coco_results)
-    cocoEval = COCOeval(cocoGt, cocoDt, "bbox")
+    try:
+      cocoDt = self.cocoGt.loadRes(self.coco_results)
+    except:
+      print("no boxes detected, coco eval aborted")
+      return 1
+    cocoEval = COCOeval(self.cocoGt, cocoDt, "bbox")
     cocoEval.params.imgIds = list(self.coco_imgIds)
     cocoEval.evaluate()
     cocoEval.accumulate()

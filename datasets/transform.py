@@ -1,6 +1,7 @@
 import numpy as np
 
-from datasets.augment import *
+from datasets.image import *
+from datasets.bbox import *
 
 
 class ImageTransform(object):
@@ -25,7 +26,7 @@ class ImageTransform(object):
     self.impad_size = max(scale) if pad_mode == 'fixed' else 64
 
   def __call__(self, img, flip=False):
-
+    img=random_color_distort(img)
     img, scale_factor = imrescale(img, self.scale)
     img_shape = img.shape
     img = imnormalize(img, self.mean, self.std)
