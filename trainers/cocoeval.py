@@ -3,7 +3,7 @@ from datasets.pycocotools.cocoeval import COCOeval
 from utils.visualize import visualize_boxes
 import numpy as np
 import matplotlib.pyplot as plt
-from .yolo_loss import predict_yolo
+from yolo.yolo_loss import predict_yolo
 from PIL import Image
 class EvaluatorCOCO:
   def __init__(self,anchors,inputsize,threshold,idx2cate,cateNames):
@@ -44,7 +44,7 @@ class EvaluatorCOCO:
             "bbox": [_boxes[i][1], _boxes[i][0], _boxes[i][3] - _boxes[i][1], _boxes[i][2] - _boxes[i][0]],
             "score": float(_scores[i])
           })
-        if visualize and len(self.visual_imgs)<400:
+        if visualize and len(self.visual_imgs)<10:
           imPre = np.array(Image.open(_imgpath).convert('RGB'))
           imGT=imPre.copy()
           annIDs=self.cocoGt.getAnnIds(imgIds=[_image_id])
@@ -63,11 +63,11 @@ class EvaluatorCOCO:
           whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
           imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
           self.visual_imgs.append(imshow)
-          import os
-          savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
-          plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          # plt.imshow(imshow)
-          # plt.show()
+          # import os
+          # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
+          # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
+          plt.imshow(imPre)
+          plt.show()
 
   def evaluate(self):
     try:

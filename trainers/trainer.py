@@ -1,15 +1,11 @@
-import time
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
-from models.yolo.loss.calc_tensor import loss_fn
-from models.yolo.loss.newloss import LossCalculator
-import json
 from trainers.cocoeval import EvaluatorCOCO
 from tensorflow.python.keras import metrics
-from .yolo_loss import loss_yolo
+from yolo.yolo_loss import loss_yolo
 class Trainer(BaseTrainer):
   def __init__(self, args,config, model, criterion, optimizer, scheduler):
-    self.idx2cat=json.load(open("./trainers/coco_idx2cat.json"))
+    self.idx2cat=self.configs['model']['idx2cat']
     self.logger_scalas={}
     self.logger_coco=['mAP','mAp@50','mAP@75','mAP@small','mAP@meduim','mAP@large',
                       'AR@1','AR@10','AR@100','AR@small','AR@medium','AR@large']
@@ -51,13 +47,12 @@ class Trainer(BaseTrainer):
   def _valid_epoch(self):
     print("validation start")
     for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      if idx_batch==50:
-        break
+      # if idx_batch==50:
+      #   break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, scale, ori_shapes,visualize=True)
     result = self.TESTevaluator.evaluate()
     imgs=self.TESTevaluator.visual_imgs
-    print(result)
     for k, v in zip(self.logger_coco, result):
       print("metric {}:{}".format(k,v))
     return result,imgs
@@ -82,8 +77,6 @@ class Trainer(BaseTrainer):
           for i in range(len(imgs)):
             tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
                              step=self.global_iter)
-
-
           self._reset_loggers()
     self._save_checkpoint()
 if __name__ == '__main__':

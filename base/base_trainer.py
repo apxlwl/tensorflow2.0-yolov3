@@ -1,21 +1,15 @@
 from utils.util import ensure_dir
 import tensorflow as tf
 from tensorflow import summary
-import json
-# from datasets.GeneralDataset import get_dataset
-from datasets.coco import get_dataset
+from dataset.coco import get_dataset
 import numpy as np
-import numbers
 import os
 import time
-from collections import OrderedDict
 from utils.optimizer_util import load_opti, save_opti
-from models.yolo.loss.newloss import LossCalculator
 class BaseTrainer:
   """
   Base class for all trainers
   """
-
   def __init__(self, args, configs, model, criterions, optimizer, scheduler):
     self.args = args
     self.configs = configs
@@ -44,8 +38,7 @@ class BaseTrainer:
     self._model_init()
     self._get_scheduler()
     self._get_loggers()
-    self.lossfn=LossCalculator(anchors=self.configs['model']['anchors'],imgsize=(self.configs['model']['net_size'],
-                                                                          self.configs['model']['net_size']))
+
   def is_better(self, new, old):
     pass
 

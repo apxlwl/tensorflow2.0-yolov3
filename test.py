@@ -1,9 +1,5 @@
 from PIL import Image
-import os
-import tensorflow as tf
 import matplotlib.pyplot as plt
-from models.yolo.net import Yolonet
-import h5py
 from tensorflow.python.keras.saving.hdf5_format import *
 from tensorflow import summary
 import time

@@ -1,5 +1,5 @@
 from options import Options
-from models.yolo.net import Yolonet
+from yolo.net import Yolonet
 from trainers.trainer import Trainer
 import tensorflow.python.keras as keras
 from tensorflow.keras import optimizers
@@ -11,11 +11,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 opt = Options(None)
 args = opt.opt
-args.experiment_name = 'darknet_scrach'
+args.experiment_name = 'darknet_new'
 args.gpu_ids = '1'
 args.learning_rate = 0.002
 args.config_path='./configs/coco.json'
-args.resume= 195460
+args.resume= 'load_darknet'
 args.total_epoch=30
 args.log_iter=5000
 args.freeze_darknet=True
