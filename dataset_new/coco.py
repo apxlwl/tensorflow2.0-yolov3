@@ -3,10 +3,7 @@ import os.path as osp
 import cv2
 import numpy as np
 from pycocotools.coco import COCO
-from datasets import transform
-from utils.dataset_util import _create_empty_grid, _assign_box, _encode_box
-from utils.box_util import find_match_anchor, create_anchor_boxes
-from datasets import COCO_ANCHORS
+from dataset_new import transform
 import tensorflow as tf
 
 tf.config.gpu.set_per_process_memory_growth(True)
@@ -16,7 +13,7 @@ DEFAULT_NETWORK_SIZE = 416
 
 
 class CocoDataSet(object):
-  def __init__(self, configs):
+  def __init__(self, configs,transform):
     '''Load a subset of the COCO dataset.
 
     Attributes
@@ -29,14 +26,9 @@ class CocoDataSet(object):
         std: Tuple. Image standard deviation.
         scale: Tuple of two integers.
     '''
-    mean = (0, 0, 0)
-    std = (1, 1, 1)
-    debug = configs["debug"]
-    pad_mode = configs["pad_mode"]
     dataset_dir = configs["dataset_dir"]
     subset = configs["subset"]
     scale = (configs["width"], configs["height"])
-    self.network_size = scale[0]
     self.flip_ratio = 0 if subset == 'val' else configs["flip"]
     if subset not in ['train', 'val']:
       raise AssertionError('subset must be "train" or "val".')
@@ -52,17 +44,15 @@ class CocoDataSet(object):
     self.img_ids, self.img_infos = self._filter_imgs()
 
     self.image_dir = "{}/images/{}2017".format(dataset_dir, subset)
-
-    if pad_mode in ['fixed', 'non-fixed']:
-      self.pad_mode = pad_mode
-    elif subset == 'train':
-      self.pad_mode = 'fixed'
-    else:
-      self.pad_mode = 'non-fixed'
+    # pad_mode = configs["pad_mode"]
+    # if pad_mode in ['fixed', 'non-fixed']:
+    #   self.pad_mode = pad_mode
+    # elif subset == 'train':
+    #   self.pad_mode = 'fixed'
+    # else:
+    #   self.pad_mode = 'non-fixed'
     self.anchors = np.array(configs['anchors'])
-    self.img_transform = transform.ImageTransform(scale, mean, std, pad_mode)
-    self.bbox_transform = transform.BboxTransform()
-
+    self._transform=transform
   def _filter_imgs(self, min_size=32):
     '''Filter images too small or without ground truths.
 
@@ -113,7 +103,6 @@ class CocoDataSet(object):
       x1, y1, w, h = ann['bbox']
       if ann['area'] <= 0 or w < 1 or h < 1:
         continue
-      # bbox = [y1, x1, y1 + h - 1, x1 + w - 1]
       bbox = [x1,y1,x1+w,y1+h]
       if ann['iscrowd']:
         gt_bboxes_ignore.append(bbox)
@@ -133,8 +122,7 @@ class CocoDataSet(object):
     else:
       gt_bboxes_ignore = np.zeros((0, 4), dtype=np.float32)
 
-    ann = dict(
-      bboxes=gt_bboxes, labels=gt_labels, bboxes_ignore=gt_bboxes_ignore)
+    ann = dict(bboxes=gt_bboxes, labels=gt_labels, bboxes_ignore=gt_bboxes_ignore)
 
     return ann
 
@@ -164,24 +152,13 @@ class CocoDataSet(object):
 
     # Load the annotation.
     ann = self._parse_ann_info(ann_info)
-    bboxes = ann['bboxes'] #[y1,x1,y2,x2]
+    bboxes = ann['bboxes'] #[x1,y1,x2,y2]
     labels = ann['labels']
-    print(osp.join(self.image_dir, img_info['file_name']))
-    print(bboxes)
-    print(labels)
-    assert 0
-    flip = True if np.random.rand() < self.flip_ratio else False
-    flip = False
-    # Handle the image
-    img, img_shape, scale_factor = self.img_transform(img, flip)
-    pad_shape = img.shape[:2]
-    pad_scale = np.array(ori_shape) * scale_factor / np.array(pad_shape[:2])
-    # Handle the annotation.
-    bboxes, labels = self.bbox_transform(bboxes, labels, img_shape, scale_factor, flip)
-    #y1,x1,y2,x2->x1,y1,x2,y2
-    bboxes=np.stack((bboxes[:,1],bboxes[:,0],bboxes[:,3],bboxes[:,2]),axis=1)
-    list_grids = preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
+    img,bboxes=self._transform(img,bboxes)
 
+    list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
+
+    pad_scale=(1,1)
     return img.astype(np.float32), \
            osp.join(self.image_dir, img_info['file_name']), \
            np.array(pad_scale).astype(np.float32), \
@@ -191,49 +168,7 @@ class CocoDataSet(object):
            list_grids[2].astype(np.float32),
 
 
-def preprocess(boxes,labels,input_shape,class_num,anchors):
-  '''
-  :param boxes:n,x,y,x2,y2
-  :param labels: n,1
-  :param img_size:(h,w)
-  :param class_num:
-  :param anchors:(9,2)
-  :return:
-  '''
-  input_shape=np.array(input_shape)
-  #find match anchor for each box,leveraging numpy broadcasting tricks
-  boxes_center=(boxes[...,2:4]+boxes[...,0:2])//2
-  boxes_wh=boxes[...,2:4]-boxes[...,0:2]
-  boxes_wh=np.expand_dims(boxes_wh,1)
-  min_wh=np.maximum(-boxes_wh/2,-anchors/2)
-  max_wh=np.minimum(boxes_wh/2,anchors/2)
-  intersect_wh=max_wh-min_wh
-  intersect_area=intersect_wh[...,0]*intersect_wh[...,1]
-  box_area=boxes_wh[...,0]*boxes_wh[...,1]
-  anchors_area=anchors[...,0]*anchors[...,1]
-  iou=intersect_area/(box_area+anchors_area-intersect_area)
-  best_ious=np.argmax(iou,axis=1)
-  #normalize boxes according to inputsize(416)
-  boxes[...,0:2]=boxes_center/input_shape[::-1]
-  boxes[...,2:4]=np.squeeze(boxes_wh,1)/input_shape[::-1]
-  #get dummy gt with zeros
-  y_true_52 = np.zeros((input_shape[1] // 8, input_shape[0] // 8, 3, 5 + class_num), np.float32)
-  y_true_26 = np.zeros((input_shape[1] // 16, input_shape[0] // 16, 3, 5 + class_num), np.float32)
-  y_true_13 = np.zeros((input_shape[1] // 32, input_shape[0] // 32, 3, 5 + class_num), np.float32)
-  y_true_list=[y_true_52,y_true_26,y_true_13]
-  grid_shapes=[input_shape//8,input_shape//16,input_shape//32]
 
-  for idx,match_id in enumerate(best_ious):
-    group_idx=match_id//3
-    sub_idx=match_id%3
-    idx_x=np.floor(boxes[idx,0]*grid_shapes[group_idx]).astype('int32')
-    idx_y=np.floor(boxes[idx,1]*grid_shapes[group_idx]).astype('int32')
-
-    y_true_list[group_idx][idx_y,idx_x,sub_idx,:2]=boxes[idx,0:2]
-    y_true_list[group_idx][idx_y,idx_x,sub_idx,2:4]=boxes[idx,2:4]
-    y_true_list[group_idx][idx_y,idx_x,sub_idx,4]=1.
-    y_true_list[group_idx][idx_y,idx_x,sub_idx,5+labels[idx]]=1.
-  return y_true_list
 
 class DataGenerator:
   def __init__(self, dataset, shuffle=False):
@@ -251,15 +186,17 @@ class DataGenerator:
 
 def get_dataset(config):
   config["subset"] = 'val'
-  valset = CocoDataSet(config)
+  datatransform = transform.YOLO3DefaultValTransform(height=416,width=416)
+  valset = CocoDataSet(config,datatransform)
   generator = DataGenerator(valset)
   valset = tf.data.Dataset.from_generator(generator,
                                           ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
   valset = valset.batch(config['batch_size'])
-  return valset,valset
+
   config["subset"] = 'train'
-  trainset = CocoDataSet(config)
+  datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416)
+  trainset = CocoDataSet(config,datatransform)
   generator = DataGenerator(trainset)
   trainset = tf.data.Dataset.from_generator(generator,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
@@ -276,9 +213,10 @@ if __name__ == '__main__':
   with open('../configs/coco.json', 'r') as f:
     configs = json.load(f)
   configs['dataset']['dataset_dir']='/disk2/datasets/coco'
-  train, _ = get_dataset(configs['dataset'])
-  for i, inputs in enumerate(train):
+  train, val = get_dataset(configs['dataset'])
+  for i, inputs in enumerate(val):
     img = inputs[0][0].numpy()
+    print(inputs[0][-2].shape)
     plt.imshow(img / img.max())
     plt.show()
     assert 0

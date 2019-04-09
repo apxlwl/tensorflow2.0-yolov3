@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import random
 from PIL import Image
+import matplotlib.pyplot as plt
 
 def fixed_crop(src, x0, y0, w, h, size=None, interp=2):
   """Crop src at fixed location, and (optionally) resize it to size.
@@ -28,28 +29,41 @@ def fixed_crop(src, x0, y0, w, h, size=None, interp=2):
   NDArray
       An `NDArray` containing the cropped image.
   """
-  img=img.crop((x0,y0,x0+w,y0+h))
-  img = src[y0:y,,:]
-  plt.imshow(np.array(img))
-  plt.show()
-  assert 0
-  # out = nd.crop(src, begin=(y0, x0, 0), end=(y0 + h, x0 + w, int(src.shape[2])))
-  if size is not None and (w, h) != size:
-    sizes = (h, w, size[1], size[0])
-    out = imresize(out, *size, interp=_get_interp_method(interp, sizes))
-  return out
-def img_flip(img):
-  '''Flip the image horizontally
+  img = src[y0:y0+h,x0:x0+w,:]
+  img=cv2.resize(img,(w,h))
+  return img
 
-  Args
-  ---
-      img: [height, width, channel]
+def random_flip(src, px=0, py=0, copy=False):
+  """Randomly flip image along horizontal and vertical with probabilities.
+
+  Parameters
+  ----------
+  src : mxnet.nd.NDArray
+      Input image with HWC format.
+  px : float
+      Horizontal flip probability [0, 1].
+  py : float
+      Vertical flip probability [0, 1].
+  copy : bool
+      If `True`, return a copy of input
 
   Returns
-  ---
-      np.ndarray: the flipped image.
-  '''
-  return np.fliplr(img)
+  -------
+  mxnet.nd.NDArray
+      Augmented image.
+  tuple
+      Tuple of (flip_x, flip_y), records of whether flips are applied.
+
+  """
+  flip_y = np.random.choice([False, True], p=[1 - py, py])
+  flip_x = np.random.choice([False, True], p=[1 - px, px])
+  if flip_y:
+    src = np.flipud(src)
+  if flip_x:
+    src = np.fliplr(src)
+  if copy:
+    src = src.copy()
+  return src, (flip_x, flip_y)
 
 
 
@@ -186,32 +200,31 @@ def impad_to_multiple(img, divisor):
   return pad
 
 
-def imrescale(img, scale):
+def img_resize(img, out_size):
   '''Resize image while keeping the aspect ratio.
 
   Args
   ---
       img: [height, width, channels]. The input image.
-      scale: Tuple of 2 integers. the image will be rescaled
-          as large as possible within the scale
+      out_size: Tuple of 2 integers. the image will be rescaled
+          as large as possible within the scale,(w,h)
 
   Returns
   ---
       np.ndarray: the scaled image.
   '''
-  h, w = img.shape[:2]
-  max_long_edge = max(scale)
-  max_short_edge = min(scale)
-  scale_factor = min(max_long_edge / max(h, w),
-                     max_short_edge / min(h, w))
-
-  new_size = (int(w * float(scale_factor) + 0.5),
-              int(h * float(scale_factor) + 0.5))
+  # h, w = img.shape[:2]
+  # max_long_edge = max(out_size)
+  # max_short_edge = min(out_size)
+  # scale_factor = min(max_long_edge / max(h, w),
+  #                    max_short_edge / min(h, w))
+  #
+  # new_size = (int(w * float(scale_factor) + 0.5),
+  #             int(h * float(scale_factor) + 0.5))
 
   rescaled_img = cv2.resize(
-    img, new_size, interpolation=cv2.INTER_LINEAR)
-
-  return rescaled_img, scale_factor
+    img, out_size, interpolation=cv2.INTER_LINEAR)
+  return rescaled_img
 
 
 def imnormalize(img, mean, std):

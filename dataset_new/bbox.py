@@ -125,23 +125,45 @@ def bbox_resize(bbox, in_size, out_size):
   bbox[:, 2] = x_scale * bbox[:, 2]
   return bbox
 
-def bbox_flip(bboxes, img_shape):
-  '''Flip bboxes horizontally.
 
-  Args
-  ---
-      bboxes: [..., 4]
-      img_shape: Tuple. (height, width)
+def bbox_flip(bbox, size, flip_x=False, flip_y=False):
+  """Flip bounding boxes according to image flipping directions.
+
+  Parameters
+  ----------
+  bbox : numpy.ndarray
+      Numpy.ndarray with shape (N, 4+) where N is the number of bounding boxes.
+      The second axis represents attributes of the bounding box.
+      Specifically, these are :math:`(x_{min}, y_{min}, x_{max}, y_{max})`,
+      we allow additional attributes other than coordinates, which stay intact
+      during bounding box transformations.
+  size : tuple
+      Tuple of length 2: (width, height).
+  flip_x : bool
+      Whether flip horizontally.
+  flip_y : type
+      Whether flip vertically.
 
   Returns
-  ---
-      np.ndarray: the flipped bboxes.
-  '''
-  w = img_shape[1]
-  flipped = bboxes.copy()
-  flipped[..., 1] = w - bboxes[..., 3] - 1
-  flipped[..., 3] = w - bboxes[..., 1] - 1
-  return flipped
+  -------
+  numpy.ndarray
+      Flipped bounding boxes with original shape.
+  """
+  if not len(size) == 2:
+    raise ValueError("size requires length 2 tuple, given {}".format(len(size)))
+  width, height = size
+  bbox = bbox.copy()
+  if flip_y:
+    ymax = height - bbox[:, 1]
+    ymin = height - bbox[:, 3]
+    bbox[:, 1] = ymin
+    bbox[:, 3] = ymax
+  if flip_x:
+    xmax = width - bbox[:, 0]
+    xmin = width - bbox[:, 2]
+    bbox[:, 0] = xmin
+    bbox[:, 2] = xmax
+  return bbox
 
 def translate(bbox, x_offset=0, y_offset=0):
   """Translate bounding boxes by offsets.

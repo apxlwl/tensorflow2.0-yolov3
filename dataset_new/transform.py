@@ -3,68 +3,41 @@ import numpy as np
 import dataset_new.image as timage
 import dataset_new.bbox as tbbox
 
+class YOLO3DefaultValTransform(object):
+  """Default YOLO validation transform.
 
-class ImageTransform(object):
-  '''Preprocess the image.
+  Parameters
+  ----------
+  width : int
+      Image width.
+  height : int
+      Image height.
+  mean : array-like of size 3
+      Mean pixel values to be subtracted from image tensor. Default is [0.485, 0.456, 0.406].
+  std : array-like of size 3
+      Standard deviation to be divided from image. Default is [0.229, 0.224, 0.225].
 
-      1. rescale the image to expected size
-      2. normalize the image
-      3. flip the image (if needed)
-      4. pad the image (if needed)
-  '''
+  """
 
-  def __init__(self,
-               scale=(800, 1333),
-               mean=(0, 0, 0),
-               std=(1, 1, 1),
-               pad_mode='fixed'):
-    self.scale = scale
-    self.mean = mean
-    self.std = std
-    self.pad_mode = pad_mode
+  def __init__(self, width, height, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    self._width = width
+    self._height = height
+    self._mean = mean
+    self._std = std
 
-    self.impad_size = max(scale) if pad_mode == 'fixed' else 64
-
-  def __call__(self, img, flip=False):
-    img = random_color_distort(img)
-    img, scale_factor = imrescale(img, self.scale)
-    img_shape = img.shape
-    img = imnormalize(img, self.mean, self.std)
-
-    if flip:
-      img = img_flip(img)
-    if self.pad_mode == 'fixed':
-      img = impad_to_square(img, self.impad_size)
-
-    else:  # 'non-fixed'
-      img = impad_to_multiple(img, self.impad_size)
-
-    return img, img_shape, scale_factor
+  def __call__(self, img, bbox):
+    """Apply transform to validation image/label."""
+    # resize
+    h, w, _ = img.shape
+    img = timage.img_resize(img, out_size=(self._width, self._height))
+    bbox = tbbox.bbox_resize(bbox, (w, h), (self._width, self._height))
+    img=timage.imnormalize(img,self._mean,self._std)
+    return img, bbox.astype(img.dtype)
 
 
-class BboxTransform(object):
-  '''Preprocess ground truth bboxes.
-
-      1. rescale bboxes according to image size
-      2. flip bboxes (if needed)
-  '''
-
-  def __init__(self):
-    pass
-
-  def __call__(self, bboxes, labels,
-               img_shape, scale_factor, flip=False):
-    bboxes = bboxes * scale_factor
-    if flip:
-      bboxes = bbox_flip(bboxes, img_shape)
-    bboxes[:, 0::2] = np.clip(bboxes[:, 0::2], 0, img_shape[0])
-    bboxes[:, 1::2] = np.clip(bboxes[:, 1::2], 0, img_shape[1])
-
-    return bboxes, labels
-
-
-class YOLO3TrainTransform(object):
-  def __init__(self, width, height, mean=(0, 0, 0), std=(1, 1, 1)):
+class YOLO3DefaultTrainTransform(object):
+  def __init__(self, width, height, mean=(0.485, 0.456, 0.406),
+               std=(0.229, 0.224, 0.225)):
     self._width = width
     self._height = height
     self._mean = mean
@@ -89,19 +62,73 @@ class YOLO3TrainTransform(object):
     bbox, crop = tbbox.random_crop_with_constraints(bbox, (w, h))
     x0, y0, w, h = crop
     img=timage.fixed_crop(img,x0,y0,w,h)
-    print(crop)
-    assert 0
-    img = mx.image.fixed_crop(img, x0, y0, w, h)
+
+    #resize
+    img=timage.img_resize(img,out_size=(self._width,self._height))
+    bbox = tbbox.bbox_resize(bbox,(w,h),(self._width,self._height))
+
+    #flip
+    h, w, _ = img.shape
+    img,flips=timage.random_flip(img,px=1)
+    bbox = tbbox.bbox_flip(bbox,(w,h),flip_x=flips[0])
+
+    #normalize
+    img=timage.imnormalize(img,self._mean,self._std)
+
     return img,bbox
+
+def preprocess(boxes,labels,input_shape,class_num,anchors):
+  '''
+  :param boxes:n,x,y,x2,y2
+  :param labels: n,1
+  :param img_size:(h,w)
+  :param class_num:
+  :param anchors:(9,2)
+  :return:
+  '''
+  input_shape=np.array(input_shape)
+  #find match anchor for each box,leveraging numpy broadcasting tricks
+  boxes_center=(boxes[...,2:4]+boxes[...,0:2])//2
+  boxes_wh=boxes[...,2:4]-boxes[...,0:2]
+  boxes_wh=np.expand_dims(boxes_wh,1)
+  min_wh=np.maximum(-boxes_wh/2,-anchors/2)
+  max_wh=np.minimum(boxes_wh/2,anchors/2)
+  intersect_wh=max_wh-min_wh
+  intersect_area=intersect_wh[...,0]*intersect_wh[...,1]
+  box_area=boxes_wh[...,0]*boxes_wh[...,1]
+  anchors_area=anchors[...,0]*anchors[...,1]
+  iou=intersect_area/(box_area+anchors_area-intersect_area)
+  best_ious=np.argmax(iou,axis=1)
+  #normalize boxes according to inputsize(416)
+  boxes[...,0:2]=boxes_center/input_shape[::-1]
+  boxes[...,2:4]=np.squeeze(boxes_wh,1)/input_shape[::-1]
+  #get dummy gt with zeros
+  y_true_52 = np.zeros((input_shape[1] // 8, input_shape[0] // 8, 3, 5 + class_num), np.float32)
+  y_true_26 = np.zeros((input_shape[1] // 16, input_shape[0] // 16, 3, 5 + class_num), np.float32)
+  y_true_13 = np.zeros((input_shape[1] // 32, input_shape[0] // 32, 3, 5 + class_num), np.float32)
+  y_true_list=[y_true_52,y_true_26,y_true_13]
+  grid_shapes=[input_shape//8,input_shape//16,input_shape//32]
+
+  for idx,match_id in enumerate(best_ious):
+    group_idx=match_id//3
+    sub_idx=match_id%3
+    idx_x=np.floor(boxes[idx,0]*grid_shapes[group_idx]).astype('int32')
+    idx_y=np.floor(boxes[idx,1]*grid_shapes[group_idx]).astype('int32')
+
+    y_true_list[group_idx][idx_y,idx_x,sub_idx,:2]=boxes[idx,0:2]
+    y_true_list[group_idx][idx_y,idx_x,sub_idx,2:4]=boxes[idx,2:4]
+    y_true_list[group_idx][idx_y,idx_x,sub_idx,4]=1.
+    y_true_list[group_idx][idx_y,idx_x,sub_idx,5+labels[idx]]=1.
+  return y_true_list
 
 if __name__ == '__main__':
   from PIL import Image
   import matplotlib.pyplot as plt
   import os
   from utils.visualize import visualize_boxes
-  train_transform=YOLO3TrainTransform(width=416,height=416)
-  # root = '/disk2/datasets/coco/images/val2017/'
-  root = '/home/gwl/datasets/coco2017/images/val2017/'
+  train_transform=YOLO3DefaultValTransform(width=416,height=416)
+  root = '/disk2/datasets/coco/images/val2017/'
+  # root = '/home/gwl/datasets/coco2017/images/val2017/'
   # filelist = os.listdir(root)
   imagename = '000000532481.jpg'
   bboxes = [[250.82, 168.26, 320.93, 233.14],
@@ -219,5 +246,5 @@ if __name__ == '__main__':
   visualize_boxes(img, boxes=np.array(bboxes),
                   labels=np.array([0, 2, 2, 2, 2, 2, 2, 0, 33, 37]),
                   probs=np.ones(shape=(10,), dtype=np.float32), class_labels=names)
-  plt.imshow(img / img.max())
+  plt.imshow(img/255)
   plt.show()
