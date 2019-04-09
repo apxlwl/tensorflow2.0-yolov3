@@ -60,7 +60,7 @@ class EvaluatorCOCO:
 
           visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
           visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
-          whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.int8)
+          whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
           imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
           self.visual_imgs.append(imshow)
           import os

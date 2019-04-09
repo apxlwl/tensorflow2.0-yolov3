@@ -1,8 +1,43 @@
 import cv2
 import numpy as np
 import random
+from PIL import Image
 
+def fixed_crop(src, x0, y0, w, h, size=None, interp=2):
+  """Crop src at fixed location, and (optionally) resize it to size.
 
+  Parameters
+  ----------
+  src : NDArray
+      Input image
+  x0 : int
+      Left boundary of the cropping area
+  y0 : int
+      Top boundary of the cropping area
+  w : int
+      Width of the cropping area
+  h : int
+      Height of the cropping area
+  size : tuple of (w, h)
+      Optional, resize to new size after cropping
+  interp : int, optional, default=2
+      Interpolation method. See resize_short for details.
+
+  Returns
+  -------
+  NDArray
+      An `NDArray` containing the cropped image.
+  """
+  img=img.crop((x0,y0,x0+w,y0+h))
+  img = src[y0:y,,:]
+  plt.imshow(np.array(img))
+  plt.show()
+  assert 0
+  # out = nd.crop(src, begin=(y0, x0, 0), end=(y0 + h, x0 + w, int(src.shape[2])))
+  if size is not None and (w, h) != size:
+    sizes = (h, w, size[1], size[0])
+    out = imresize(out, *size, interp=_get_interp_method(interp, sizes))
+  return out
 def img_flip(img):
   '''Flip the image horizontally
 

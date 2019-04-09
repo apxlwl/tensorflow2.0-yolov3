@@ -4,7 +4,7 @@
 ### Computer Vision and Pattern Recognition, 2018          ###
 ##############################################################
 import sys
-sys.path.append('datasets')
+sys.path.append('datasets_new')
 
 RACCOON_ANCHORS = [17,18, 28,24, 36,34, 42,44, 56,51, 72,66, 90,95, 92,154, 139,281]
 COCO_ANCHORS = [10,13,

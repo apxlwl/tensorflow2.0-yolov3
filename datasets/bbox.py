@@ -79,7 +79,7 @@ def bbox_crop(bbox, crop_box=None, allow_outside_center=True):
   else:
     centers = (bbox[:, :2] + bbox[:, 2:4]) / 2
     mask = np.logical_and(crop_bbox[:2] <= centers, centers < crop_bbox[2:]).all(axis=1)
-
+    #satisfy both x and y
   # transform borders
   bbox[:, :2] = np.maximum(bbox[:, :2], crop_bbox[:2])
   bbox[:, 2:4] = np.minimum(bbox[:, 2:4], crop_bbox[2:4])
@@ -246,7 +246,6 @@ def random_crop_with_constraints(bbox, size, min_scale=0.3, max_scale=1,
       crop_t = random.randrange(h - crop_h)
       crop_l = random.randrange(w - crop_w)
       crop_bb = np.array((crop_l, crop_t, crop_l + crop_w, crop_t + crop_h))
-
       if len(bbox) == 0:
         top, bottom = crop_t, crop_t + crop_h
         left, right = crop_l, crop_l + crop_w

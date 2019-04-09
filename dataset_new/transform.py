@@ -1,7 +1,7 @@
 import numpy as np
 
-import datasets.image as timage
-import datasets.bbox as tbbox
+import dataset_new.image as timage
+import dataset_new.bbox as tbbox
 
 
 class ImageTransform(object):
@@ -88,6 +88,7 @@ class YOLO3TrainTransform(object):
     h, w, _ = img.shape
     bbox, crop = tbbox.random_crop_with_constraints(bbox, (w, h))
     x0, y0, w, h = crop
+    img=timage.fixed_crop(img,x0,y0,w,h)
     print(crop)
     assert 0
     img = mx.image.fixed_crop(img, x0, y0, w, h)
@@ -99,7 +100,8 @@ if __name__ == '__main__':
   import os
   from utils.visualize import visualize_boxes
   train_transform=YOLO3TrainTransform(width=416,height=416)
-  root = '/disk2/datasets/coco/images/val2017/'
+  # root = '/disk2/datasets/coco/images/val2017/'
+  root = '/home/gwl/datasets/coco2017/images/val2017/'
   # filelist = os.listdir(root)
   imagename = '000000532481.jpg'
   bboxes = [[250.82, 168.26, 320.93, 233.14],
