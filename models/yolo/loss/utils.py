@@ -56,8 +56,6 @@ def conf_delta_tensor(y_true, y_pred, anchors, ignore_thresh):
 
   union_areas = pred_areas + true_areas - intersect_areas
   best_ious = tf.truediv(intersect_areas, union_areas)
-  print(best_ious.shape)
-  assert 0
   conf_delta = pred_box_conf * tf.cast(best_ious < ignore_thresh, tf.float32)
   return conf_delta
 
