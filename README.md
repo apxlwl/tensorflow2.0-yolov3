@@ -26,9 +26,9 @@ python main.py --experiment_name dummy_name
 
 
 ## TODO
--[ ] Update performance
--[ ] Support distribute training
--[ ] Support Custom dataset  
+- [ ] Update performance
+- [ ] Support distribute training
+- [ ] Support Custom dataset  
 
 ## Reference
 [gluon-cv](https://github.com/dmlc/gluon-cv)
