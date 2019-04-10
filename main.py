@@ -10,10 +10,9 @@ tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-opt = Options(None)
+opt = Options()
 args = opt.opt
 args.experiment_name = 'yolov3'
-args.config_path='./configs/coco.json'
 
 with open(args.config_path,'r') as f:
   configs = json.load(f)

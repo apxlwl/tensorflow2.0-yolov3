@@ -1,11 +1,10 @@
-import os, sys, time, pdb, random, argparse
-
-
+import argparse
 class Options():
-  def __init__(self, model_names):
+  def __init__(self):
     parser = argparse.ArgumentParser(description='Train Style Aggregated Network',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--config_path', default='./configs/face.json')
+    parser.add_argument('--experiment_name', default='train_yolov3')
+    parser.add_argument('--config_path', default='./configs/coco.json')
     # Optimization options
     parser.add_argument('--resume', default=None) #options:['load_darknet','load_yolov3',int]
     parser.add_argument('--total_epoch', type=int, default=100, help='Number of epochs to train.')
