@@ -1,3 +1,6 @@
+"""
+This result is tested using official yolov3 weights
+"""
 #416*416 mean(0,0,0) std(1,1,1) direct resize
 metric mAP:0.32750344150500826
 metric mAp@50:0.5511226001604224

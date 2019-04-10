@@ -4,12 +4,12 @@ from trainers.cocoeval import EvaluatorCOCO
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 class Trainer(BaseTrainer):
-  def __init__(self, args,config, model, criterion, optimizer, scheduler):
+  def __init__(self, args,config, model, optimizer, scheduler):
     self.logger_scalas={}
     self.logger_coco=['mAP','mAp@50','mAP@75','mAP@small','mAP@meduim','mAP@large',
                       'AR@1','AR@10','AR@100','AR@small','AR@medium','AR@large']
     self.logger_pic=[]
-    super().__init__(args,config, model, criterion,optimizer, scheduler)
+    super().__init__(args,config, model,optimizer, scheduler)
   def _get_loggers(self):
     self.TESTevaluator=EvaluatorCOCO(anchors=self.anchors,
                                      inputsize=(self.configs['model']['net_size'],
@@ -46,7 +46,7 @@ class Trainer(BaseTrainer):
   def _valid_epoch(self):
     print("validation start")
     for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      if idx_batch==50:
+      if idx_batch==self.args.valid_batch and not self.args.do_test: #to save time
         break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, scale, ori_shapes,visualize=True)
@@ -76,7 +76,3 @@ class Trainer(BaseTrainer):
                              step=self.global_iter.numpy())
           self._reset_loggers()
     self.ckpt_manager.save(self.global_epoch)
-if __name__ == '__main__':
-  import os
-
-  print(os.getcwd())

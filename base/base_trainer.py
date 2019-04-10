@@ -9,12 +9,11 @@ class BaseTrainer:
   """
   Base class for all trainers
   """
-  def __init__(self, args, configs, model, criterions, optimizer, scheduler):
+  def __init__(self, args, configs, model, optimizer, scheduler):
     self.args = args
     self.configs = configs
 
     self.model = model
-    self.criterion = criterions
     self.optimizer = optimizer
     self.scheduler_config = scheduler
     self.scheduler = None
@@ -23,7 +22,6 @@ class BaseTrainer:
     self.global_epoch = tf.Variable(0)
     self.train_dataloader = None
     self.test_dataloader = None
-    self.save_iter = self.args.save_iter
     self.log_iter = self.args.log_iter
     self.evaluate = self.args.evaluate
     self.anchors = np.array(self.configs["model"]["anchors"])
@@ -61,6 +59,7 @@ class BaseTrainer:
     print("successfully load checkpoint {}".format(self.args.resume))
 
   def _get_scheduler(self):
+    #TODO : add learningrate scheduler
     pass
 
   def _get_model(self):
@@ -68,17 +67,10 @@ class BaseTrainer:
     ensure_dir(self.save_path)
     self._prepare_device()
   def _prepare_device(self):
-    # self.strategy=tf.distribute.MirroredStrategy(self.args.gpu_ids)
-    # print(self.strategy.num_replicas_in_sync)
-    # assert 0
-    # self.configs['dataset']['batch_size'] *=self.strategy.num_replicas_in_sync
-    # return device, gpus
+    #TODO: add distributed training
     pass
   def _get_SummaryWriter(self):
     if not self.args.debug and not self.args.evaluate:
-      # with open(self.save_path + "/args-{}.json".
-      #     format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))),'w') as f:
-      #   json.dump(self.args.__dict__, f, indent=4)
       ensure_dir(os.path.join('./summary/',self.experiment_name))
       self.trainwriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
                                                                                           time.strftime(
@@ -87,9 +79,6 @@ class BaseTrainer:
                                                                                               time.time()))))
   def _get_dataset(self):
     self.train_dataloader, self.test_dataloader = get_dataset(self.configs['dataset'])
-    # with self.strategy.scope():
-    #   self.train_iterator=self.strategy.make_dataset_iterator(self.train_dataloader)
-    #   self.test_iterator =self.strategy.make_dataset_iterator(self.test_dataloader)
 
   def _get_loggers(self):
     raise NotImplementedError

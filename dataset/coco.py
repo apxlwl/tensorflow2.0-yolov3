@@ -8,8 +8,6 @@ import tensorflow as tf
 
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-DOWNSAMPLE_RATIO = 32
-DEFAULT_NETWORK_SIZE = 416
 
 
 class CocoDataSet(object):

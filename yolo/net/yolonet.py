@@ -9,19 +9,18 @@ from yolo.net.headnet import Headnet
 import os
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 # Yolo v3
 class Yolonet(keras.Model):
-  def __init__(self, n_classes=80):
-
-    super(Yolonet, self).__init__(name='')
-
+  def __init__(self, n_classes=80,freeze_backbone=False):
+    super(Yolonet, self).__init__()
     self.body = Bodynet()
     self.head = Headnet(n_classes)
     self.num_layers = 110
     self.num_body=52
-    # self._init_vars()
-
+    if freeze_backbone:
+      for op in self.body.layers:
+        op.trainable = False
   def load_darknet_params(self, weights_file, skip_detect_layer=False,body=False):
     weight_reader = WeightReader(weights_file)
     if body:
@@ -45,17 +44,3 @@ class Yolonet(keras.Model):
         variables.append(v)
     return variables
 
-  # def _init_vars(self):
-  #     sample = tf.constant(np.random.randn(1, 224, 224, 3).astype(np.float32))
-  #     self.call(sample, training=False)
-
-
-if __name__ == '__main__':
-  np.random.seed(123)
-  inputs = tf.constant(np.random.randn(1, 288, 288, 3).astype(np.float32))
-  # (1, 256, 256, 3) => (1, 8, 8, 1024)
-  yolonet = Yolonet(n_classes=80)
-  for op in yolonet.body.layers:
-    op.trainable=False
-  for op in yolonet.non_trainable_variables:
-    print(op.name)
