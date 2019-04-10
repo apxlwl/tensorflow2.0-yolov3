@@ -1,7 +1,7 @@
 __author__ = 'tsungyi'
 
 # import datasets.pycocotools._mask as _mask
-from datasets.pycocotools import _mask
+from dataset.pycocotools import _mask
 # Interface for manipulating masks stored in RLE format.
 #
 # RLE is a simple yet efficient format for storing binary masks. RLE

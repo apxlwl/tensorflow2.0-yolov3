@@ -2,8 +2,8 @@ import os
 import os.path as osp
 import cv2
 import numpy as np
-from dataset_new.pycocotools.coco import COCO
-from dataset_new import transform
+from dataset.pycocotools.coco import COCO
+from dataset import transform
 import tensorflow as tf
 
 tf.config.gpu.set_per_process_memory_growth(True)
@@ -161,7 +161,6 @@ class CocoDataSet(object):
 
 
 
-
 class DataGenerator:
   def __init__(self, dataset, shuffle=False):
     self.dataset = dataset
@@ -184,8 +183,8 @@ def get_dataset(config):
   valset = tf.data.Dataset.from_generator(generator,
                                           ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
-  valset = valset.batch(config['batch_size'])
-
+  valset = valset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
+  # return valset,valset
   config["subset"] = 'train'
   datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
   trainset = CocoDataSet(config,datatransform)
@@ -193,7 +192,7 @@ def get_dataset(config):
   trainset = tf.data.Dataset.from_generator(generator,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
-  trainset = trainset.batch(config['batch_size'])
+  trainset = trainset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
 
   return trainset, valset
 

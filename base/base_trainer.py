@@ -5,7 +5,6 @@ from dataset.coco import get_dataset
 import numpy as np
 import os
 import time
-from utils.optimizer_util import load_opti, save_opti
 class BaseTrainer:
   """
   Base class for all trainers
@@ -20,10 +19,8 @@ class BaseTrainer:
     self.scheduler_config = scheduler
     self.scheduler = None
     self.experiment_name = args.experiment_name
-    self.global_iter = 0
-    self.global_epoch = 0
-    self.visual_train = []
-    self.visual_test = []
+    self.global_iter = tf.Variable(0)
+    self.global_epoch = tf.Variable(0)
     self.train_dataloader = None
     self.test_dataloader = None
     self.save_iter = self.args.save_iter
@@ -33,25 +30,20 @@ class BaseTrainer:
     self.net_size = self.configs["model"]["net_size"]
     self.labels=self.configs['model']['labels']
 
+    self._get_model()
     self._get_SummaryWriter()
     self._get_dataset()
-    self._model_init()
     self._get_scheduler()
     self._get_loggers()
-
+    self._get_checkpoint()
   def is_better(self, new, old):
     pass
 
-  def _save_checkpoint(self, name=None):
-    if self.args.evaluate:
-      return
-    if name == None:
-      self.model.save_weights(os.path.join(self.save_path, 'model-iter{}.h5'.format(self.global_iter)))
-      save_opti(self.optimizer, os.path.join(self.save_path, 'opti-iter{}.pkl'.format(self.global_iter)))
-    else:
-      self.model.save_weights(os.path.join(self.save_path, 'model-{}.h5'.format(name)))
-      save_opti(self.optimizer, os.path.join(self.save_path, 'opti-{}.pkl'.format(name)))
-    print("save checkpoints at iter{}".format(self.global_iter))
+  def _get_checkpoint(self):
+    self.ckpt = tf.train.Checkpoint(step=self.global_iter,epoch=self.global_epoch, optimizer=self.optimizer, net=self.model)
+    self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, self.save_path, max_to_keep=10)
+    if self.args.resume:
+      self._load_checkpoint()
 
   def _load_checkpoint(self):
     # TODO add a dummy step
@@ -61,59 +53,50 @@ class BaseTrainer:
     elif self.args.resume=="load_yolov3":
       self.model.load_darknet_params(os.path.join(self.configs["pretrained_model"],
                                                   'yolov3.weights'), skip_detect_layer=False, body=False)
-    elif self.args.resume=="load_best":
-      self.model.load_weights(os.path.join(self.save_path, 'model-best.h5'.format(self.args.resume)))
-      # load_opti(self.optimizer, os.path.join(self.save_path, 'opti-best.pkl'.format(self.args.resume)))
     else:
-      self.model.load_weights(os.path.join(self.save_path, 'model-iter{}.h5'.format(int(self.args.resume))))
-      self.global_iter = self.args.resume
-      # load_opti(self.optimizer, os.path.join(self.save_path, 'opti-iter{}.pkl'.format(self.args.resume)))
+      self.ckpt.restore(self.ckpt_manager.latest_checkpoint)
+      self.global_iter=self.ckpt.step
+      self.global_epoch=self.ckpt.epoch
+
     print("successfully load checkpoint {}".format(self.args.resume))
 
   def _get_scheduler(self):
     pass
-    # if self.scheduler_config['lr_policy'] == 'cosin':
-    #   self.scheduler = lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=self.scheduler_config['T_max'])
-    #   self.scheduler_epoch = self.scheduler_config['decrease_Startepoch']
-    # elif self.scheduler_config['lr_policy'] == 'step':
-    #   self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=1, gamma=self.scheduler_config['gamma'])
-    #   self.scheduler_epoch = self.scheduler_config['decrease_Startepoch']
 
-  def _model_init(self):
-    self.save_path = './checkpoints/{}/'.format(self.args.experiment_name)
-    if self.args.resume:
-      self._load_checkpoint()
-
-  def _prepare_device(self):
-    os.environ['CUDA_VISIBLE_DEVICES'] = self.args.gpu_id
-    # return device, gpus
-
-  def _get_SummaryWriter(self):
+  def _get_model(self):
     self.save_path = './checkpoints/{}/'.format(self.args.experiment_name)
     ensure_dir(self.save_path)
+    self._prepare_device()
+  def _prepare_device(self):
+    # self.strategy=tf.distribute.MirroredStrategy(self.args.gpu_ids)
+    # print(self.strategy.num_replicas_in_sync)
+    # assert 0
+    # self.configs['dataset']['batch_size'] *=self.strategy.num_replicas_in_sync
+    # return device, gpus
+    pass
+  def _get_SummaryWriter(self):
     if not self.args.debug and not self.args.evaluate:
       # with open(self.save_path + "/args-{}.json".
       #     format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))),'w') as f:
       #   json.dump(self.args.__dict__, f, indent=4)
-      self.trainwriter = summary.create_file_writer(logdir='./summary/{}-{}/train'.format(self.experiment_name,
+      ensure_dir(os.path.join('./summary/',self.experiment_name))
+      self.trainwriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
                                                                                           time.strftime(
                                                                                             "%m%d-%H-%M-%S",
                                                                                             time.localtime(
                                                                                               time.time()))))
-      self.testwriter = summary.create_file_writer(logdir='./summary/{}-{}/test'.format(self.experiment_name,
-                                                                                        time.strftime("%m%d-%H-%M-%S",
-                                                                                                      time.localtime(
-                                                                                                        time.time()))))
-
   def _get_dataset(self):
     self.train_dataloader, self.test_dataloader = get_dataset(self.configs['dataset'])
+    # with self.strategy.scope():
+    #   self.train_iterator=self.strategy.make_dataset_iterator(self.train_dataloader)
+    #   self.test_iterator =self.strategy.make_dataset_iterator(self.test_dataloader)
 
   def _get_loggers(self):
     raise NotImplementedError
 
   def train(self):
-    for epoch in range(self.global_epoch, self.args.total_epoch):
-      self.global_epoch += 1
+    for epoch in range(self.global_epoch.numpy(), self.args.total_epoch):
+      self.global_epoch.assign_add(1)
       self._train_epoch()
 
   @tf.function

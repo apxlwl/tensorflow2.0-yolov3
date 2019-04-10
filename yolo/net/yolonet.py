@@ -3,14 +3,13 @@
 import tensorflow as tf
 import numpy as np
 from tensorflow.python import keras
-
-from yolo.net import Bodynet
-from yolo.net import Headnet
-from yolo.net import WeightReader
+from yolo.net.bodynet import Bodynet
+from yolo.net.weights import WeightReader
+from yolo.net.headnet import Headnet
 import os
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # Yolo v3
 class Yolonet(keras.Model):
   def __init__(self, n_classes=80):

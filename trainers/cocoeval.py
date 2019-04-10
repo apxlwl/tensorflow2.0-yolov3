@@ -1,5 +1,5 @@
-from datasets.pycocotools.coco import COCO
-from datasets.pycocotools.cocoeval import COCOeval
+from dataset.pycocotools.coco import COCO
+from dataset.pycocotools.cocoeval import COCOeval
 from utils.visualize import visualize_boxes
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,8 +66,8 @@ class EvaluatorCOCO:
           # import os
           # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
           # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          plt.imshow(imPre)
-          plt.show()
+          # plt.imshow(imPre)
+          # plt.show()
 
   def evaluate(self):
     try:

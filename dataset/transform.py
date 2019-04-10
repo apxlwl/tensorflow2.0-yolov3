@@ -1,7 +1,7 @@
 import numpy as np
 
-import dataset_new.image as timage
-import dataset_new.bbox as tbbox
+import dataset.image as timage
+import dataset.bbox as tbbox
 
 class YOLO3DefaultValTransform(object):
   """Default YOLO validation transform.

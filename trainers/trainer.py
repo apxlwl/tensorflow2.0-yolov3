@@ -5,7 +5,6 @@ from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 class Trainer(BaseTrainer):
   def __init__(self, args,config, model, criterion, optimizer, scheduler):
-    self.idx2cat=self.configs['model']['idx2cat']
     self.logger_scalas={}
     self.logger_coco=['mAP','mAp@50','mAP@75','mAP@small','mAP@meduim','mAP@large',
                       'AR@1','AR@10','AR@100','AR@small','AR@medium','AR@large']
@@ -15,7 +14,7 @@ class Trainer(BaseTrainer):
     self.TESTevaluator=EvaluatorCOCO(anchors=self.anchors,
                                      inputsize=(self.configs['model']['net_size'],
                                                 self.configs['model']['net_size']),
-                                     idx2cate=self.idx2cat,
+                                     idx2cate=self.configs['model']['idx2cat'],
                                      threshold=self.configs['cls_threshold'],
                                      cateNames=self.configs['model']['labels'])
 
@@ -47,8 +46,8 @@ class Trainer(BaseTrainer):
   def _valid_epoch(self):
     print("validation start")
     for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      # if idx_batch==50:
-      #   break
+      if idx_batch==50:
+        break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, scale, ori_shapes,visualize=True)
     result = self.TESTevaluator.evaluate()
@@ -59,26 +58,24 @@ class Trainer(BaseTrainer):
   def _train_epoch(self):
     with self.trainwriter.as_default():
       for i, (img,imgpath,scale,ori_shapes,*labels) in enumerate(self.train_dataloader):
-        self.global_iter+=1
-        if self.global_iter%100==0:
-          print(self.global_iter)
+        self.global_iter.assign_add(1)
+        if self.global_iter.numpy()%100==0:
+          print(self.global_iter.numpy())
           for k,v in self.logger_scalas.items():
             print(k,":",v.result().numpy())
 
         _=self.train_step(img,labels)
-
-        if self.global_iter%self.log_iter==0:
+        if self.global_iter.numpy()%self.log_iter==0:
           for k,v in self.logger_scalas.items():
-            tf.summary.scalar(k,v.result(),step=self.global_iter)
-
+            tf.summary.scalar(k,v.result(),step=self.global_iter.numpy())
           result,imgs=self._valid_epoch()
           for k, v in zip(self.logger_coco, result):
-            tf.summary.scalar(k, v, step=self.global_iter)
+            tf.summary.scalar(k, v, step=self.global_iter.numpy())
           for i in range(len(imgs)):
             tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
-                             step=self.global_iter)
+                             step=self.global_iter.numpy())
           self._reset_loggers()
-    self._save_checkpoint()
+    self.ckpt_manager.save(self.global_epoch)
 if __name__ == '__main__':
   import os
 
