@@ -190,7 +190,8 @@ def get_dataset(config):
   trainset = tf.data.Dataset.from_generator(generator,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
-  trainset = trainset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
+  #be careful to drop the last smaller batch if using tf.function
+  trainset = trainset.batch(config['batch_size'],drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return trainset, valset
 
