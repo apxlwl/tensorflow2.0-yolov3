@@ -54,7 +54,7 @@ class EvaluatorCOCO:
           for id in annIDs:
             ann=self.cocoGt.anns[id]
             x,y,w,h=ann['bbox']
-            boxGT.append([y,x,h+y,w+x])
+            boxGT.append([x,y,x+w,y+h])
             labelGT.append(self.cat2idx[ann['category_id']])
             scoreGT.append(1.0)
 

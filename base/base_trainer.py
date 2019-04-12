@@ -24,7 +24,7 @@ class BaseTrainer:
     self.evaluate = self.args.evaluate
     self.anchors = np.array(self.configs["model"]["anchors"])
     self.net_size = self.configs["model"]["net_size"]
-    self.labels=self.configs['model']['labels']
+    self.labels=self.configs['dataset']['labels']
 
     self._get_model()
     self._get_SummaryWriter()

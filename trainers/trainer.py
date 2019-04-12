@@ -16,7 +16,7 @@ class Trainer(BaseTrainer):
                                                 self.configs['model']['net_size']),
                                      idx2cate=self.configs['model']['idx2cat'],
                                      threshold=self.configs['cls_threshold'],
-                                     cateNames=self.configs['model']['labels'])
+                                     cateNames=self.configs['dataset']['labels'])
 
     self.LossBox =metrics.Mean()
     self.LossConf=metrics.Mean()
@@ -29,7 +29,7 @@ class Trainer(BaseTrainer):
     self.LossClass.reset_states()
     self.LossConf.reset_states()
     self.LossBox.reset_states()
-  # @tf.function
+  @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
@@ -37,8 +37,6 @@ class Trainer(BaseTrainer):
       loss=tf.sqrt(tf.reduce_sum(loss_box+loss_conf+loss_class))
     grads = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-    print(self.optimizer._decayed_lr(tf.float32))
-    assert 0
     self.LossBox.update_state(loss_box)
     self.LossConf.update_state(loss_conf)
     self.LossClass.update_state(loss_class)

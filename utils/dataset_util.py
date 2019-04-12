@@ -53,7 +53,7 @@ class PascalVocXmlParser(object):
       y1 = box_tag.find("ymin").text
       x2 = box_tag.find("xmax").text
       y2 = box_tag.find("ymax").text
-      box = np.array([int(float(y1)), int(float(x1)), int(float(y2)), int(float(x2))])
+      box = np.array([int(float(x1)), int(float(y1)), int(float(x2)), int(float(y2))])
       bbs.append(box)
     bbs = np.array(bbs)
     return bbs
@@ -66,3 +66,16 @@ class PascalVocXmlParser(object):
   def _tree(self, fname):
     tree = parse(fname)
     return tree
+
+class DataGenerator:
+  def __init__(self, dataset, shuffle=False):
+    self.dataset = dataset
+    self.shuffle = shuffle
+
+  def __call__(self):
+    indices = np.arange(len(self.dataset))
+    if self.shuffle:
+      np.random.shuffle(indices)
+    for img_idx in indices:
+      img, imgpath, scale, ori_shape, label0, label1, label2 = self.dataset[img_idx]
+      yield img, imgpath, scale, ori_shape, label0, label1, label2

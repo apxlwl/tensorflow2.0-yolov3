@@ -5,6 +5,7 @@ import numpy as np
 from dataset.pycocotools.coco import COCO
 from dataset import transform
 import tensorflow as tf
+from utils.dataset_util import DataGenerator
 
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -159,18 +160,6 @@ class CocoDataSet(object):
 
 
 
-class DataGenerator:
-  def __init__(self, dataset, shuffle=False):
-    self.dataset = dataset
-    self.shuffle = shuffle
-
-  def __call__(self):
-    indices = np.arange(len(self.dataset))
-    if self.shuffle:
-      np.random.shuffle(indices)
-    for img_idx in indices:
-      img, imgpath, scale, ori_shape, label0, label1, label2 = self.dataset[img_idx]
-      yield img, imgpath, scale, ori_shape, label0, label1, label2
 
 
 def get_dataset(config):
