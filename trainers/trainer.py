@@ -4,12 +4,12 @@ from trainers.cocoeval import EvaluatorCOCO
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 class Trainer(BaseTrainer):
-  def __init__(self, args,config, model, optimizer, scheduler):
+  def __init__(self, args,config, model, optimizer):
     self.logger_scalas={}
     self.logger_coco=['mAP','mAp@50','mAP@75','mAP@small','mAP@meduim','mAP@large',
                       'AR@1','AR@10','AR@100','AR@small','AR@medium','AR@large']
     self.logger_pic=[]
-    super().__init__(args,config, model,optimizer, scheduler)
+    super().__init__(args,config, model,optimizer)
   def _get_loggers(self):
     self.TESTevaluator=EvaluatorCOCO(anchors=self.anchors,
                                      inputsize=(self.configs['model']['net_size'],
@@ -29,7 +29,7 @@ class Trainer(BaseTrainer):
     self.LossClass.reset_states()
     self.LossConf.reset_states()
     self.LossBox.reset_states()
-  @tf.function
+  # @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
@@ -37,7 +37,8 @@ class Trainer(BaseTrainer):
       loss=tf.sqrt(tf.reduce_sum(loss_box+loss_conf+loss_class))
     grads = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-
+    print(self.optimizer._decayed_lr(tf.float32))
+    assert 0
     self.LossBox.update_state(loss_box)
     self.LossConf.update_state(loss_conf)
     self.LossClass.update_state(loss_class)

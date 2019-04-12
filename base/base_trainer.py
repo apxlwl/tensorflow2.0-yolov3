@@ -9,14 +9,12 @@ class BaseTrainer:
   """
   Base class for all trainers
   """
-  def __init__(self, args, configs, model, optimizer, scheduler):
+  def __init__(self, args, configs, model, optimizer):
     self.args = args
     self.configs = configs
 
     self.model = model
     self.optimizer = optimizer
-    self.scheduler_config = scheduler
-    self.scheduler = None
     self.experiment_name = args.experiment_name
     self.global_iter = tf.Variable(0)
     self.global_epoch = tf.Variable(0)
@@ -30,10 +28,10 @@ class BaseTrainer:
 
     self._get_model()
     self._get_SummaryWriter()
-    self._get_dataset()
-    self._get_scheduler()
     self._get_loggers()
     self._get_checkpoint()
+    self._get_dataset()
+
   def is_better(self, new, old):
     pass
 
@@ -55,17 +53,13 @@ class BaseTrainer:
       self.ckpt.restore(self.ckpt_manager.latest_checkpoint)
       self.global_iter=self.ckpt.step
       self.global_epoch=self.ckpt.epoch
-
     print("successfully load checkpoint {}".format(self.args.resume))
-
-  def _get_scheduler(self):
-    #TODO : add learningrate scheduler
-    pass
 
   def _get_model(self):
     self.save_path = './checkpoints/{}/'.format(self.args.experiment_name)
     ensure_dir(self.save_path)
     self._prepare_device()
+
   def _prepare_device(self):
     #TODO: add distributed training
     pass
