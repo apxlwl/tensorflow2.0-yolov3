@@ -14,7 +14,7 @@ class Options():
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum.')
     parser.add_argument('--decay', type=float, default=0.0005, help='Weight decay (L2 penalty).')
 
-    parser.add_argument('--gpu_ids', type=str, help='empty for CPU, other for GPU-IDs')
+    parser.add_argument('--gpu_ids', type=str,default=1, help='empty for CPU, other for GPU-IDs')
     parser.add_argument('--workers', type=int, default=2, help='number of data loading workers (default: 2)')
     # Random seed
     # parser.add_argument('--manualSeed', type=int, help='manual seed')

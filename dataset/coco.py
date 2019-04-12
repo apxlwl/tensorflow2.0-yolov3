@@ -186,7 +186,7 @@ def get_dataset(config):
   config["subset"] = 'train'
   datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
   trainset = CocoDataSet(config,datatransform)
-  generator = DataGenerator(trainset)
+  generator = DataGenerator(trainset,shuffle=True)
   trainset = tf.data.Dataset.from_generator(generator,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
