@@ -57,7 +57,7 @@ class EvaluatorCOCO:
             boxGT.append([x,y,x+w,y+h])
             labelGT.append(self.cat2idx[ann['category_id']])
             scoreGT.append(1.0)
-
+          _boxes=np.concatenate((np.expand_dims(_boxes[:,1],1),np.expand_dims(_boxes[:,0],1),np.expand_dims(_boxes[:,3],1),np.expand_dims(_boxes[:,2],1)),1)
           visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
           visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
           whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)

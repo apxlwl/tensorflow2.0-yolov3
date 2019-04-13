@@ -63,7 +63,7 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale):
   return nms_boxes, nms_scores, labels
 
 
-def loss_yolo(feature_map_list, gt_list, anchors, inputshape):
+def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
   inputshape = tf.cast(inputshape, tf.float32)
@@ -78,7 +78,7 @@ def loss_yolo(feature_map_list, gt_list, anchors, inputshape):
     _object_mask = _gt[..., 4:5]
     _true_class_probs = _gt[..., 5:]
 
-    _xy_offset, _feature, _box_centers, _box_wh = process_output(_featurelist, _anchor, inputshape)
+    _xy_offset, _feature, _box_centers, _box_wh = process_output(_featurelist, _anchor, inputshape,num_classes=num_classes)
 
     # get ignoremask
     _valid_true_boxes = tf.boolean_mask(_gt[..., 0:4], tf.cast(_object_mask[..., 0], 'bool'))

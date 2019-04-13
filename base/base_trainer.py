@@ -1,7 +1,7 @@
 from utils.util import ensure_dir
 import tensorflow as tf
 from tensorflow import summary
-from dataset.coco import get_dataset
+from dataset import get_coco,get_pascal
 import numpy as np
 import os
 import time
@@ -25,6 +25,7 @@ class BaseTrainer:
     self.anchors = np.array(self.configs["model"]["anchors"])
     self.net_size = self.configs["model"]["net_size"]
     self.labels=self.configs['dataset']['labels']
+    self.num_classes=len(self.labels)
 
     self._get_model()
     self._get_SummaryWriter()
@@ -72,7 +73,10 @@ class BaseTrainer:
                                                                                             time.localtime(
                                                                                               time.time()))))
   def _get_dataset(self):
-    self.train_dataloader, self.test_dataloader = get_dataset(self.configs['dataset'])
+    if self.configs['dataset_name'].startswith("COCO"):
+      self.train_dataloader, self.test_dataloader = get_coco(self.configs['dataset'])
+    else:
+      self.train_dataloader, self.test_dataloader = get_pascal(self.configs['dataset'])
 
   def _get_loggers(self):
     raise NotImplementedError
