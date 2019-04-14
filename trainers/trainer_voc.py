@@ -1,6 +1,6 @@
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
-from trainers.cocoeval import EvaluatorCOCO
+from trainers.voceval import EvaluatorVOC
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 
@@ -14,7 +14,7 @@ class Trainer(BaseTrainer):
     super().__init__(args, config, model, optimizer)
 
   def _get_loggers(self):
-    self.TESTevaluator = EvaluatorCOCO(anchors=self.anchors,
+    self.TESTevaluator = EvaluatorVOC(anchors=self.anchors,
                                        inputsize=(self.configs['model']['net_size'],
                                                   self.configs['model']['net_size']),
                                        idx2cate=self.configs['model']['idx2cat'],
@@ -34,14 +34,14 @@ class Trainer(BaseTrainer):
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  @tf.function
+  # @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
       loss_box, loss_conf, loss_class = loss_yolo(outputs, labels, anchors=self.anchors,
                                                   inputshape=(self.net_size, self.net_size),
                                                   num_classes=self.num_classes)
-      loss = tf.sqrt(tf.reduce_sum(loss_box + loss_conf + loss_class))
+      loss = tf.reduce_sum(loss_box + loss_conf + loss_class)
     grads = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
     self.LossBox.update_state(loss_box)
@@ -51,20 +51,17 @@ class Trainer(BaseTrainer):
 
   def _valid_epoch(self):
     print("validation start")
-    for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
+    for idx_batch, (imgs, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath, scale, ori_shapes, visualize=True)
-    result = self.TESTevaluator.evaluate()
+      self.TESTevaluator.append(grids, imgpath,annpath, scale, ori_shapes, visualize=True)
     imgs = self.TESTevaluator.visual_imgs
-    for k, v in zip(self.logger_coco, result):
-      print("metric {}:{}".format(k, v))
-    return result, imgs
+    return imgs
 
   def _train_epoch(self):
     with self.trainwriter.as_default():
-      for i, (img, imgpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
+      for i, (img, imgpath,annpath,scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
         self.global_iter.assign_add(1)
         if self.global_iter.numpy() % 100 == 0:
           print(self.global_iter.numpy())
@@ -75,9 +72,7 @@ class Trainer(BaseTrainer):
         if self.global_iter.numpy() % self.log_iter == 0:
           for k, v in self.logger_scalas.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
-          result, imgs = self._valid_epoch()
-          for k, v in zip(self.logger_coco, result):
-            tf.summary.scalar(k, v, step=self.global_iter.numpy())
+          imgs = self._valid_epoch()
           for i in range(len(imgs)):
             tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
                              step=self.global_iter.numpy())

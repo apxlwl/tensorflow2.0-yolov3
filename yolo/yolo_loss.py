@@ -3,7 +3,7 @@ import tensorflow as tf
 from utils.nms_utils import gpu_nms
 
 
-def process_output(feature_map, anchors, input_shape, num_classes=80, training=True):
+def process_output(feature_map, anchors, input_shape, num_classes, training=True):
   anchors = tf.reshape(anchors, shape=[1, 1, 1, 3, 2])
   grid_size = feature_map.shape[1:3]  # y,x
   feature_map = tf.reshape(feature_map, [-1, grid_size[0], grid_size[1], 3, 5 + num_classes])
@@ -30,7 +30,7 @@ def process_output(feature_map, anchors, input_shape, num_classes=80, training=T
     return box_centers, box_wh, box_conf, box_prob
 
 
-def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale):
+def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
   boxes = []
@@ -39,8 +39,8 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale):
   for idx in range(3):
     _feature, _anchor = feature_map_list[idx], anchors[idx]
     _feature = tf.expand_dims(_feature, 0)
-    _boxes_center, _boxes_wh, _conf, _classes = process_output(_feature, _anchor, inputshape, training=False)
-    _score = tf.reshape(_conf * _classes, [1, -1, 80])
+    _boxes_center, _boxes_wh, _conf, _classes = process_output(_feature, _anchor, inputshape, training=False,num_classes=num_classes)
+    _score = tf.reshape(_conf * _classes, [1, -1, num_classes])
 
     _boxes_center = _boxes_center / padscale[::-1] * imgshape[::-1]
     _boxes_wh = _boxes_wh / padscale[::-1] * imgshape[::-1]
@@ -58,7 +58,7 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale):
   x_max = center_x + width / 2
   y_max = center_y + height / 2
   allboxes = tf.concat([y_min, x_min, y_max, x_max], axis=-1)
-  nms_boxes, nms_scores, labels = gpu_nms(allboxes, allscores, 80)
+  nms_boxes, nms_scores, labels = gpu_nms(allboxes, allscores, num_classes)
 
   return nms_boxes, nms_scores, labels
 

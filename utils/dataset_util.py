@@ -21,11 +21,10 @@ class PascalVocXmlParser(object):
     fname= self.get_fname()
     labels=self.get_labels()
     boxes=self.get_boxes()
-    assert os.path.exists(fname),"file {} does not exist".format(fname)
+    # assert os.path.exists(fname),"file {} does not exist".format(fname)
     return fname,np.array(boxes),labels
   def get_fname(self):
-    return os.path.join(self.root.find("path").text,
-                        self.root.find("filename").text)
+    return os.path.join(self.root.find("filename").text)
 
   def get_width(self):
     for elem in self.tree.iter():
