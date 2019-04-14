@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def gpu_nms(boxes, scores, num_classes, max_boxes=50, score_thresh=0.3, iou_thresh=0.3):
+def gpu_nms(boxes, scores, num_classes, max_boxes=50, score_thresh=0.01, iou_thresh=0.5):
   """
   Perform NMS on GPU using TensorFlow.
 

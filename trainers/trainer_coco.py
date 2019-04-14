@@ -54,6 +54,8 @@ class Trainer(BaseTrainer):
     for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
+      if idx_batch%50==0:
+          print("{}/5000 done".format(idx_batch*12))
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, scale, ori_shapes, visualize=True)
     result = self.TESTevaluator.evaluate()
