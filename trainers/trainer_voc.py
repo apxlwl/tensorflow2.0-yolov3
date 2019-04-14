@@ -34,7 +34,7 @@ class Trainer(BaseTrainer):
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  # @tf.function
+  @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
