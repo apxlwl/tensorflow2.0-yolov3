@@ -33,7 +33,7 @@ class EvaluatorCOCO:
       _grid = [feature[idx] for feature in grids]
       _padscale = padscale[idx]
       _orishape=orishape[idx]
-      _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale)
+      _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale,num_classes=80)
       if _boxes is not None: #do have bboxes
         _boxes,_scores,_labels = _boxes.numpy(),_scores.numpy(),_labels.numpy()
         for i in range(_boxes.shape[0]):
@@ -66,9 +66,9 @@ class EvaluatorCOCO:
           # import os
           # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
           # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          # plt.imshow(imPre)
-          # plt.show()
-
+          plt.imshow(imshow)
+          plt.show()
+          assert 0
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)
