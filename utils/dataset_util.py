@@ -52,7 +52,7 @@ class PascalVocXmlParser(object):
       y1 = box_tag.find("ymin").text
       x2 = box_tag.find("xmax").text
       y2 = box_tag.find("ymax").text
-      box = np.array([int(float(x1)), int(float(y1)), int(float(x2)), int(float(y2))])
+      box = np.array([(float(x1)), (float(y1)), (float(x2)), (float(y2))])
       bbs.append(box)
     bbs = np.array(bbs)
     return bbs
