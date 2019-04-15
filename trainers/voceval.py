@@ -34,6 +34,7 @@ class EvaluatorVOC:
       _padscale = padscale[idx]
       _orishape=orishape[idx]
       _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale,num_classes=20)
+
       if _boxes is not None: #do have bboxes
         _boxes,_scores,_labels = _boxes.numpy(),_scores.numpy(),_labels.numpy()
         if visualize and len(self.visual_imgs)<10:
@@ -45,15 +46,17 @@ class EvaluatorVOC:
           scoreGT=np.ones(shape=(bboxes.shape[0],))
 
           _boxes=np.concatenate((np.expand_dims(_boxes[:,1],1),np.expand_dims(_boxes[:,0],1),np.expand_dims(_boxes[:,3],1),np.expand_dims(_boxes[:,2],1)),1)
+          # print(_boxes[0])
           visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
           visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
           whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
           imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
           self.visual_imgs.append(imshow)
-
+          # plt.imshow(imshow)
+          # plt.show()
           # import os
           # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
           # plt.imsave(os.path.join(savepath,'{}.png'.format(len(self.visual_imgs))),imshow)
-
+      # assert 0
   def evaluate(self):
     pass

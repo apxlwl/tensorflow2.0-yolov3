@@ -66,9 +66,9 @@ class EvaluatorCOCO:
           # import os
           # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
           # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          # plt.imshow(imPre)
-          # plt.show()
-
+          plt.imshow(imshow)
+          plt.show()
+          assert 0
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)

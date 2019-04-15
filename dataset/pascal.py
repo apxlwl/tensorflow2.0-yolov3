@@ -22,7 +22,7 @@ class VocDataset:
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
     self._ids = []
-    self.shuffle = True
+    self.shuffle = configs['shuffle']
     for year, subset in configs['subset']:
       rootpath = os.path.join(dataset_dir, 'VOC' + year)
       for line in open(os.path.join(rootpath, 'ImageSets', 'Main', '{}.txt'.format(subset))):
@@ -58,6 +58,7 @@ class VocDataset:
 
 def get_dataset(config):
   config["subset"] = [('2007', 'test')]
+  config['shuffle']=False
   datatransform = transform.YOLO3DefaultValTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
   valset = VocDataset(config, datatransform)
   valset = tf.data.Dataset.from_generator(valset,
@@ -66,6 +67,7 @@ def get_dataset(config):
   valset = valset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
 
   config['subset'] = [('2007', 'trainval'), ('2012', 'trainval')]
+  config['shuffle']=True
   datatransform = transform.YOLO3DefaultTrainTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
   trainset = VocDataset(config, datatransform)
   trainset = tf.data.Dataset.from_generator(trainset,
