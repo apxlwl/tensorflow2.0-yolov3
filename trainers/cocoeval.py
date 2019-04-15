@@ -68,7 +68,7 @@ class EvaluatorCOCO:
           # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
           plt.imshow(imshow)
           plt.show()
-          assert 0
+          # assert 0
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)

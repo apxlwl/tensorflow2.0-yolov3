@@ -55,8 +55,6 @@ class Trainer(BaseTrainer):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       grids = self.model(imgs, training=False)
-      print(grids[0][0,:6,:6,0])
-      assert 0
       self.TESTevaluator.append(grids, imgpath,annpath, scale, ori_shapes, visualize=True)
     imgs = self.TESTevaluator.visual_imgs
     return imgs
