@@ -26,12 +26,13 @@ class BaseTrainer:
     self.net_size = self.configs["model"]["net_size"]
     self.labels=self.configs['dataset']['labels']
     self.num_classes=len(self.labels)
+    self.num_test=None
 
     self._get_model()
-    self._get_SummaryWriter()
-    self._get_loggers()
+    # self._get_SummaryWriter()
     self._get_checkpoint()
     self._get_dataset()
+    self._get_loggers()
 
   def is_better(self, new, old):
     pass
@@ -76,8 +77,7 @@ class BaseTrainer:
     if self.configs['dataset_name'].startswith("COCO"):
       self.train_dataloader, self.test_dataloader = get_coco(self.configs['dataset'])
     else:
-      self.train_dataloader, self.test_dataloader = get_pascal(self.configs['dataset'])
-
+      self.train_dataloader, self.test_dataloader,self.num_train,self.num_test = get_pascal(self.configs['dataset'])
   def _get_loggers(self):
     raise NotImplementedError
 

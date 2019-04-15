@@ -136,7 +136,7 @@
     "jitter": false
   },
   "dataset": {
-    "dataset_dir": "/home/gwl/datasets/VOCdevkit",
+    "dataset_dir": "/disk3/datasets/voc",
     "height": 416,
     "width": 416,
     "debug": "True",

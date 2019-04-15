@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from yolo.yolo_loss import predict_yolo
 from PIL import Image
+from .Evaluator import Evaluator
 class EvaluatorCOCO:
   def __init__(self,anchors,inputsize,threshold,idx2cate,cateNames):
     self.anchors=anchors
@@ -60,7 +61,7 @@ class EvaluatorCOCO:
           _boxes=np.concatenate((np.expand_dims(_boxes[:,1],1),np.expand_dims(_boxes[:,0],1),np.expand_dims(_boxes[:,3],1),np.expand_dims(_boxes[:,2],1)),1)
           visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
           visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
-          whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
+          whitepad=np.zeros(shape=(imwPre.shape[0],10,3),dtype=np.uint8)
           imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
           self.visual_imgs.append(imshow)
           # import os

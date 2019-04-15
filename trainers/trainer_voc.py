@@ -1,17 +1,17 @@
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
-from trainers.voceval import EvaluatorVOC
+from evaluator.voceval import EvaluatorVOC
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 
 
 class Trainer(BaseTrainer):
   def __init__(self, args, config, model, optimizer):
+    super().__init__(args, config, model, optimizer)
     self.logger_scalas = {}
     self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
                         'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
     self.logger_pic = []
-    super().__init__(args, config, model, optimizer)
 
   def _get_loggers(self):
     self.TESTevaluator = EvaluatorVOC(anchors=self.anchors,
@@ -19,7 +19,9 @@ class Trainer(BaseTrainer):
                                                   self.configs['model']['net_size']),
                                        idx2cate=self.configs['model']['idx2cat'],
                                        threshold=self.configs['cls_threshold'],
-                                       cateNames=self.configs['dataset']['labels'])
+                                       cateNames=self.configs['dataset']['labels'],
+                                       num_images=self.num_test
+                                      )
 
     self.LossBox = metrics.Mean()
     self.LossConf = metrics.Mean()
