@@ -33,7 +33,7 @@ class EvaluatorCOCO:
       _grid = [feature[idx] for feature in grids]
       _padscale = padscale[idx]
       _orishape=orishape[idx]
-      _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale)
+      _boxes,_scores,_labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape,_padscale,num_classes=80)
       if _boxes is not None: #do have bboxes
         _boxes,_scores,_labels = _boxes.numpy(),_scores.numpy(),_labels.numpy()
         for i in range(_boxes.shape[0]):

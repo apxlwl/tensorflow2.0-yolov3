@@ -41,7 +41,7 @@ class Trainer(BaseTrainer):
       loss_box, loss_conf, loss_class = loss_yolo(outputs, labels, anchors=self.anchors,
                                                   inputshape=(self.net_size, self.net_size),
                                                   num_classes=self.num_classes)
-      loss = tf.sqrt(tf.reduce_sum(loss_box + loss_conf + loss_class))
+      loss = tf.reduce_sum(loss_box + loss_conf + loss_class)
     grads = tape.gradient(loss, self.model.trainable_variables)
     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
     self.LossBox.update_state(loss_box)
