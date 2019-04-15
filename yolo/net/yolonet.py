@@ -28,7 +28,7 @@ class Yolonet(keras.Model):
     else:
       weight_reader.load_origin_weights(self, skip_detect_layer)
 
-  def call(self, input_tensor, training=False, mask=None):
+  def call(self, input_tensor, training, mask=None):
     s3, s4, s5 = self.body(input_tensor, training)
     f3,f4,f5 = self.head((s3, s4, s5), training)
     return f3,f4,f5
