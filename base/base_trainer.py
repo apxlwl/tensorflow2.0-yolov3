@@ -26,12 +26,13 @@ class BaseTrainer:
     self.net_size = self.configs["model"]["net_size"]
     self.labels=self.configs['dataset']['labels']
     self.num_classes=len(self.labels)
+    self.num_test=None
 
     self._get_model()
     self._get_SummaryWriter()
-    self._get_loggers()
     self._get_checkpoint()
     self._get_dataset()
+    self._get_loggers()
 
   def is_better(self, new, old):
     pass
@@ -52,6 +53,7 @@ class BaseTrainer:
                                                   'yolov3.weights'), skip_detect_layer=False, body=False)
     else:
       self.ckpt.restore(self.ckpt_manager.latest_checkpoint)
+      self.ckpt.restore(os.path.join(self.save_path,'ckpt-{}'.format(self.args.resume)))
       self.global_iter=self.ckpt.step
       self.global_epoch=self.ckpt.epoch
     print("successfully load checkpoint {}".format(self.args.resume))
@@ -76,8 +78,7 @@ class BaseTrainer:
     if self.configs['dataset_name'].startswith("COCO"):
       self.train_dataloader, self.test_dataloader = get_coco(self.configs['dataset'])
     else:
-      self.train_dataloader, self.test_dataloader = get_pascal(self.configs['dataset'])
-
+      self.train_dataloader, self.test_dataloader,self.num_train,self.num_test = get_pascal(self.configs['dataset'])
   def _get_loggers(self):
     raise NotImplementedError
 

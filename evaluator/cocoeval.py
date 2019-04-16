@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from yolo.yolo_loss import predict_yolo
 from PIL import Image
+from .Evaluator import Evaluator
 class EvaluatorCOCO:
   def __init__(self,anchors,inputsize,threshold,idx2cate,cateNames):
     self.anchors=anchors
@@ -66,9 +67,9 @@ class EvaluatorCOCO:
           # import os
           # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
           # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          # plt.imshow(imPre)
-          # plt.show()
-
+          plt.imshow(imshow)
+          plt.show()
+          assert 0
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)

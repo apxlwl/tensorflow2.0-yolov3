@@ -22,7 +22,7 @@ class VocDataset:
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
     self._ids = []
-    self.shuffle = True
+    self.shuffle = configs['shuffle']
     for year, subset in configs['subset']:
       rootpath = os.path.join(dataset_dir, 'VOC' + year)
       for line in open(os.path.join(rootpath, 'ImageSets', 'Main', '{}.txt'.format(subset))):
@@ -39,7 +39,7 @@ class VocDataset:
       rootpath, filename = self._ids[idx]
       annpath = self._annopath.format(rootpath, filename)
       imgpath = self._imgpath.format(rootpath, filename)
-      fname, bboxes, labels = PascalVocXmlParser(annpath, self.labels).parse()
+      fname, bboxes, labels,_ = PascalVocXmlParser(annpath, self.labels).parse()
       img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
       img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
       ori_shape = img.shape[:2]
@@ -58,22 +58,25 @@ class VocDataset:
 
 def get_dataset(config):
   config["subset"] = [('2007', 'test')]
+  config['shuffle']=False
   datatransform = transform.YOLO3DefaultValTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
   valset = VocDataset(config, datatransform)
-  valset = tf.data.Dataset.from_generator(valset,
+
+  valset_iter = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                             tf.float32, tf.float32,tf.float32)))
-  valset = valset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
-
+  valset_iter = valset_iter.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
+  return valset_iter,valset_iter,len(valset),len(valset)
   config['subset'] = [('2007', 'trainval'), ('2012', 'trainval')]
+  config['shuffle']=True
   datatransform = transform.YOLO3DefaultTrainTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
   trainset = VocDataset(config, datatransform)
-  trainset = tf.data.Dataset.from_generator(trainset,
+  trainset_iter = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                               tf.float32, tf.float32,tf.float32)))
   # be careful to drop the last smaller batch if using tf.function
-  trainset = trainset.batch(config['batch_size'], drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
-  return trainset, valset
+  trainset_iter = trainset_iter.batch(config['batch_size'], drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+  return trainset_iter, valset_iter,len(trainset),len(valset)
 
 
 if __name__ == '__main__':
@@ -83,7 +86,9 @@ if __name__ == '__main__':
   with open('../configs/voc.json', 'r') as f:
     configs = json.load(f)
   configs['dataset']['batch_size'] = 2
+  configs['dataset']['dataset_dir']='/disk3/datasets/voc'
   train, _ = get_dataset(configs['dataset'])
+  assert 0
   for epoch in range(5):
     for idx, inputs in enumerate(train):
       if idx==3:

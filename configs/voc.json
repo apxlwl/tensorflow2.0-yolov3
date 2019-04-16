@@ -136,13 +136,13 @@
     "jitter": false
   },
   "dataset": {
-    "dataset_dir": "/home/gwl/datasets/VOCdevkit",
+    "dataset_dir": "/disk3/datasets/voc",
     "height": 416,
     "width": 416,
     "debug": "True",
     "pad_mode": "fixed",
     "flip": 0,
-    "batch_size": 12,
+    "batch_size": 3,
     "anchors": [
       [
         10,

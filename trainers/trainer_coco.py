@@ -1,16 +1,13 @@
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
-from trainers.cocoeval import EvaluatorCOCO
+from evaluator.cocoeval import EvaluatorCOCO
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 
 
 class Trainer(BaseTrainer):
   def __init__(self, args, config, model, optimizer):
-    self.logger_scalas = {}
-    self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
-                        'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
-    self.logger_pic = []
+
     super().__init__(args, config, model, optimizer)
 
   def _get_loggers(self):
@@ -24,10 +21,12 @@ class Trainer(BaseTrainer):
     self.LossBox = metrics.Mean()
     self.LossConf = metrics.Mean()
     self.LossClass = metrics.Mean()
-    self.logger_scalas.update({"lossBox": self.LossBox})
-    self.logger_scalas.update({"lossConf": self.LossConf})
-    self.logger_scalas.update({"lossClass": self.LossClass})
-
+    self.logger_losses = {}
+    self.logger_losses.update({"lossBox": self.LossBox})
+    self.logger_losses.update({"lossConf": self.LossConf})
+    self.logger_losses.update({"lossClass": self.LossClass})
+    self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
+                        'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
   def _reset_loggers(self):
     self.TESTevaluator.reset()
     self.LossClass.reset_states()
@@ -70,12 +69,12 @@ class Trainer(BaseTrainer):
         self.global_iter.assign_add(1)
         if self.global_iter.numpy() % 100 == 0:
           print(self.global_iter.numpy())
-          for k, v in self.logger_scalas.items():
+          for k, v in self.logger_losses.items():
             print(k, ":", v.result().numpy())
 
         _ = self.train_step(img, labels)
         if self.global_iter.numpy() % self.log_iter == 0:
-          for k, v in self.logger_scalas.items():
+          for k, v in self.logger_losses.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
           result, imgs = self._valid_epoch()
           for k, v in zip(self.logger_coco, result):

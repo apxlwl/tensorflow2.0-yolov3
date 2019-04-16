@@ -1,32 +1,34 @@
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
-from trainers.voceval import EvaluatorVOC
+from evaluator.voceval import EvaluatorVOC
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
 
 
 class Trainer(BaseTrainer):
   def __init__(self, args, config, model, optimizer):
-    self.logger_scalas = {}
-    self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
-                        'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
-    self.logger_pic = []
+
     super().__init__(args, config, model, optimizer)
 
   def _get_loggers(self):
     self.TESTevaluator = EvaluatorVOC(anchors=self.anchors,
-                                       inputsize=(self.configs['model']['net_size'],
-                                                  self.configs['model']['net_size']),
-                                       idx2cate=self.configs['model']['idx2cat'],
-                                       threshold=self.configs['cls_threshold'],
-                                       cateNames=self.configs['dataset']['labels'])
+                                      inputsize=(self.configs['model']['net_size'],
+                                                 self.configs['model']['net_size']),
+                                      idx2cate=self.configs['model']['idx2cat'],
+                                      threshold=self.configs['cls_threshold'],
+                                      cateNames=self.configs['dataset']['labels'],
+                                      root_path=self.configs['dataset']['dataset_dir'],
+                                      use_07_metric=False
+                                      )
 
     self.LossBox = metrics.Mean()
     self.LossConf = metrics.Mean()
     self.LossClass = metrics.Mean()
-    self.logger_scalas.update({"lossBox": self.LossBox})
-    self.logger_scalas.update({"lossConf": self.LossConf})
-    self.logger_scalas.update({"lossClass": self.LossClass})
+    self.logger_losses = {}
+    self.logger_losses.update({"lossBox": self.LossBox})
+    self.logger_losses.update({"lossConf": self.LossConf})
+    self.logger_losses.update({"lossClass": self.LossClass})
+    self.logger_voc = ['AP@{}'.format(cls) for cls in self.labels]+['mAP']
 
   def _reset_loggers(self):
     self.TESTevaluator.reset()
@@ -51,30 +53,38 @@ class Trainer(BaseTrainer):
 
   def _valid_epoch(self):
     print("validation start")
-    for idx_batch, (imgs, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
+    for idx_batch, (imgs, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
+      print(idx_batch)
+      self.args.valid_batch = 5
+      if idx_batch == self.args.valid_batch:  # to save time
         break
       grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath,annpath, scale, ori_shapes, visualize=True)
+      self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes, visualize=True)
+    results=self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
-    return imgs
+    return results,imgs
 
   def _train_epoch(self):
-    with self.trainwriter.as_default():
-      for i, (img, imgpath,annpath,scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
-        self.global_iter.assign_add(1)
-        if self.global_iter.numpy() % 100 == 0:
-          print(self.global_iter.numpy())
-          for k, v in self.logger_scalas.items():
-            print(k, ":", v.result().numpy())
+    for i, (img, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
+      self.global_iter.assign_add(1)
+      if self.global_iter.numpy() % 100 == 0:
+        print(self.global_iter.numpy())
+        for k, v in self.logger_losses.items():
+          print(k, ":", v.result().numpy())
 
-        _ = self.train_step(img, labels)
-        if self.global_iter.numpy() % self.log_iter == 0:
-          for k, v in self.logger_scalas.items():
+      _ = self.train_step(img, labels)
+
+      if self.global_iter.numpy() % self.log_iter == 0:
+        results,imgs=self._valid_epoch()
+
+        with self.trainwriter.as_default():
+          for k,v in zip(self.logger_voc,results):
+            tf.summary.scalar(k, v, step=self.global_iter.numpy())
+          for k, v in self.logger_losses.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
           imgs = self._valid_epoch()
           for i in range(len(imgs)):
             tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
                              step=self.global_iter.numpy())
-          self._reset_loggers()
+        self._reset_loggers()
     self.ckpt_manager.save(self.global_epoch)
