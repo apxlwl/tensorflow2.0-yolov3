@@ -7,6 +7,7 @@ import tensorflow as tf
 import os
 from utils.dataset_util import DataGenerator
 from utils.visualize import visualize_boxes
+from base import COCO_LABEL,COCO_ANCHOR,VOC_LABEL,VOC_ANCHOR
 
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'

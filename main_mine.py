@@ -31,7 +31,6 @@ optimizer = keras.optimizers.SGD(learning_rate=args.learning_rate,
                                  momentum=args.momentum)
 
 _Trainer = Trainer(args=args,
-                   config=configs,
                    model=net,
                    optimizer=optimizer
                    )

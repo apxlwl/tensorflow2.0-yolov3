@@ -5,28 +5,29 @@ from dataset import get_coco,get_pascal
 import numpy as np
 import os
 import time
+from .anchors import COCO_ANCHOR,COCO_LABEL,VOC_ANCHOR,VOC_LABEL
 class BaseTrainer:
   """
   Base class for all trainers
   """
-  def __init__(self, args, configs, model, optimizer):
+  def __init__(self, args, model, optimizer):
     self.args = args
-    self.configs = configs
-
     self.model = model
     self.optimizer = optimizer
     self.experiment_name = args.experiment_name
+    self.dataset_name = args.dataset_name
+    self.dataset_root= args.dataset_root
     self.global_iter = tf.Variable(0)
     self.global_epoch = tf.Variable(0)
     self.train_dataloader = None
     self.test_dataloader = None
     self.log_iter = self.args.log_iter
     self.evaluate = self.args.evaluate
-    self.anchors = np.array(self.configs["model"]["anchors"])
-    self.net_size = self.configs["model"]["net_size"]
-    self.labels=self.configs['dataset']['labels']
+    self.net_size = self.args.net_size
+    self.anchors = eval('{}_ANCHOR'.format(self.args.dataset.upper()))
+    self.labels= eval('{}_LABEL'.format(self.args.dataset.upper()))
+
     self.num_classes=len(self.labels)
-    self.num_test=None
 
     self._get_model()
     self._get_SummaryWriter()

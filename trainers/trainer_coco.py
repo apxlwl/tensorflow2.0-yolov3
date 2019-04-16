@@ -6,17 +6,18 @@ from yolo.yolo_loss import loss_yolo
 
 
 class Trainer(BaseTrainer):
-  def __init__(self, args, config, model, optimizer):
-
-    super().__init__(args, config, model, optimizer)
+  def __init__(self, args, model, optimizer):
+    super().__init__(args, model, optimizer)
 
   def _get_loggers(self):
     self.TESTevaluator = EvaluatorCOCO(anchors=self.anchors,
-                                       inputsize=(self.configs['model']['net_size'],
-                                                  self.configs['model']['net_size']),
-                                       idx2cate=self.configs['model']['idx2cat'],
-                                       threshold=self.configs['cls_threshold'],
-                                       cateNames=self.configs['dataset']['labels'])
+                                       inputsize=(self.net_size,
+                                                  self.net_size),
+                                       cateNames=self.labels,
+                                       rootpath=self.dataset_root,
+                                       score_thres=0.01,
+                                       iou_thres=0.5,
+                                       )
 
     self.LossBox = metrics.Mean()
     self.LossConf = metrics.Mean()
@@ -56,7 +57,7 @@ class Trainer(BaseTrainer):
       if idx_batch%50==0:
           print("{}/5000 done".format(idx_batch*12))
       grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath, scale, ori_shapes, visualize=True)
+      self.TESTevaluator.append(grids, imgpath, scale, ori_shapes)
     result = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
     for k, v in zip(self.logger_coco, result):

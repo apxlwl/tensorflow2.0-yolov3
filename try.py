@@ -1,14 +1,23 @@
-class father:
+import numpy as np
+class test:
   def __init__(self):
-    self.a = 1
+    self.a=np.arange(10)
+  def __call__(self):
+    np.random.shuffle(self.a)
+    for i in self.a:
+      yield i
 
-  def change(self, s):
-    self.a = 3
+def test1():
+  a = np.arange(5)
+  np.random.shuffle(a)
+  for i in a:
+    yield i
 
-
-class son(father):
-  def __init__(self):
-    super().__init__()
-
-  def change(self):
-    self.a = 5
+# t=test()
+# for epoch in range(5):
+#   t.next()
+f=test1()
+for epoch in range(3):
+  for i in test1():
+    print(i)
+  print("***********")

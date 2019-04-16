@@ -5,34 +5,18 @@ import numpy as np
 from dataset.pycocotools.coco import COCO
 from dataset import transform
 import tensorflow as tf
-from utils.dataset_util import DataGenerator
-
+from base import COCO_LABEL,COCO_ANCHOR
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class CocoDataSet(object):
-  def __init__(self, configs,transform):
-    '''Load a subset of the COCO dataset.
-
-    Attributes
-    ---
-        dataset_dir: The root directory of the COCO dataset.
-        subset: What to load (train, val).
-        flip_ratio: Float. The ratio of flipping an image and its bounding boxes.
-        pad_mode: Which padded method to use (fixed, non-fixed)
-        mean: Tuple. Image mean.
-        std: Tuple. Image standard deviation.
-        scale: Tuple of two integers.
-    '''
-    dataset_dir = configs["dataset_dir"]
-    subset = configs["subset"]
-    self.flip_ratio = 0 if subset == 'val' else configs["flip"]
-    if subset not in ['train', 'val']:
-      raise AssertionError('subset must be "train" or "val".')
-
-    self.coco = COCO("{}/annotations/instances_{}2017.json".format(dataset_dir, subset))
-
+  def __init__(self, dataset_root,transform,subset,shuffle):
+    self.dataset_root = dataset_root
+    self.image_dir = "{}/images/{}2017".format(dataset_root, subset)
+    self.coco = COCO("{}/annotations/instances_{}2017.json".format(dataset_root, subset))
+    self.anchors = COCO_ANCHOR
+    self.shuffle=shuffle
     # get the mapping from original category ids to labels
     self.cat_ids = self.coco.getCatIds()
     self.cat2label = {
@@ -40,9 +24,6 @@ class CocoDataSet(object):
       for i, cat_id in enumerate(self.cat_ids)
     }
     self.img_ids, self.img_infos = self._filter_imgs()
-
-    self.image_dir = "{}/images/{}2017".format(dataset_dir, subset)
-    self.anchors = np.array(configs['anchors'])
     self._transform=transform
   def _filter_imgs(self, min_size=32):
     '''Filter images too small or without ground truths.
@@ -136,7 +117,6 @@ class CocoDataSet(object):
     ann_info = self._load_ann_info(idx)
 
     # load the image.
-    assert os.path.exists(osp.join(self.image_dir, img_info['file_name']))
     img = cv2.imread(osp.join(self.image_dir, img_info['file_name']), cv2.IMREAD_COLOR)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     ori_shape = img.shape[:2]

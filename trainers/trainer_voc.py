@@ -6,18 +6,17 @@ from yolo.yolo_loss import loss_yolo
 
 
 class Trainer(BaseTrainer):
-  def __init__(self, args, config, model, optimizer):
-
-    super().__init__(args, config, model, optimizer)
+  def __init__(self, args, model, optimizer):
+    super().__init__(args, model, optimizer)
 
   def _get_loggers(self):
     self.TESTevaluator = EvaluatorVOC(anchors=self.anchors,
-                                      inputsize=(self.configs['model']['net_size'],
-                                                 self.configs['model']['net_size']),
-                                      idx2cate=self.configs['model']['idx2cat'],
-                                      threshold=self.configs['cls_threshold'],
-                                      cateNames=self.configs['dataset']['labels'],
-                                      root_path=self.configs['dataset']['dataset_dir'],
+                                       inputsize=(self.net_size,
+                                                  self.net_size),
+                                       cateNames=self.labels,
+                                       rootpath=self.dataset_root,
+                                       score_thres=0.01,
+                                       iou_thres=0.5,
                                       use_07_metric=False
                                       )
 
@@ -28,7 +27,7 @@ class Trainer(BaseTrainer):
     self.logger_losses.update({"lossBox": self.LossBox})
     self.logger_losses.update({"lossConf": self.LossConf})
     self.logger_losses.update({"lossClass": self.LossClass})
-    self.logger_voc = ['AP@{}'.format(cls) for cls in self.labels]+['mAP']
+    self.logger_voc = ['AP@{}'.format(cls) for cls in self.labels] + ['mAP']
 
   def _reset_loggers(self):
     self.TESTevaluator.reset()
@@ -60,9 +59,9 @@ class Trainer(BaseTrainer):
         break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes, visualize=True)
-    results=self.TESTevaluator.evaluate()
+    results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
-    return results,imgs
+    return results, imgs
 
   def _train_epoch(self):
     for i, (img, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
@@ -75,10 +74,10 @@ class Trainer(BaseTrainer):
       _ = self.train_step(img, labels)
 
       if self.global_iter.numpy() % self.log_iter == 0:
-        results,imgs=self._valid_epoch()
+        results, imgs = self._valid_epoch()
 
         with self.trainwriter.as_default():
-          for k,v in zip(self.logger_voc,results):
+          for k, v in zip(self.logger_voc, results):
             tf.summary.scalar(k, v, step=self.global_iter.numpy())
           for k, v in self.logger_losses.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
