@@ -80,7 +80,6 @@ class Trainer(BaseTrainer):
             tf.summary.scalar(k, v, step=self.global_iter.numpy())
           for k, v in self.logger_losses.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
-          imgs = self._valid_epoch()
           for i in range(len(imgs)):
             tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
                              step=self.global_iter.numpy())
