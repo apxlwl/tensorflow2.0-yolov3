@@ -6,16 +6,13 @@ import matplotlib.pyplot as plt
 from yolo.yolo_loss import predict_yolo
 from PIL import Image
 from .Evaluator import Evaluator
-class EvaluatorCOCO:
-  def __init__(self,anchors,inputsize,threshold,idx2cate,cateNames):
-    self.anchors=anchors
-    self.inputsize=inputsize
-    self.cls_threshold=threshold
+class EvaluatorCOCO(Evaluator):
+  def __init__(self,anchors,inputsize,score_thres,iou_thres,idx2cate,cateNames):
+    super().__init__(anchors,inputsize,cateNames,score_thres,iou_thres)
     self.coco_imgIds=set([])
     self.coco_results=[]
     self.idx2cat=idx2cate
     self.cat2idx= {int(v): int(k) for k, v in self.idx2cat.items()}
-    self.cateNames=cateNames
     self.reset()
     self.visual_imgs=[]
     self.cocoGt = COCO('/home/gwl/datasets/coco2017/annotations/instances_val2017.json')
@@ -64,12 +61,7 @@ class EvaluatorCOCO:
           whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
           imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
           self.visual_imgs.append(imshow)
-          # import os
-          # savepath='/home/gwl/PycharmProjects/mine/tf2-yolo3/compare/mine'
-          # plt.imsave(os.path.join(savepath,'{}.png'.format(_image_id)),imshow)
-          plt.imshow(imshow)
-          plt.show()
-          assert 0
+
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)
