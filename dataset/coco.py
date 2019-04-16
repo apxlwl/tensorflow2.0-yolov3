@@ -15,7 +15,7 @@ class CocoDataSet(object):
     self.dataset_root = dataset_root
     self.image_dir = "{}/images/{}2017".format(dataset_root, subset)
     self.coco = COCO("{}/annotations/instances_{}2017.json".format(dataset_root, subset))
-    self.anchors = COCO_ANCHOR
+    self.anchors = np.array(COCO_ANCHOR)
     self.shuffle=shuffle
     # get the mapping from original category ids to labels
     self.cat_ids = self.coco.getCatIds()
@@ -101,66 +101,55 @@ class CocoDataSet(object):
   def __len__(self):
     return len(self.img_infos)
 
-  def __getitem__(self, idx):
-    '''Load the image and its bboxes for the given index.
+  def __call__(self):
+    indices = np.arange(len(self.img_infos))
+    if self.shuffle:
+      np.random.shuffle(indices)
+    for idx in indices:
+      img_info = self.img_infos[idx]
+      ann_info = self._load_ann_info(idx)
+      # load the image.
+      img = cv2.imread(osp.join(self.image_dir, img_info['file_name']), cv2.IMREAD_COLOR)
+      img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+      ori_shape = img.shape[:2]
 
-    Args
-    ---
-        idx: the index of images.
+      # Load the annotation.
+      ann = self._parse_ann_info(ann_info)
+      bboxes = ann['bboxes'] #[x1,y1,x2,y2]
+      labels = ann['labels']
+      img,bboxes=self._transform(img,bboxes)
 
-    Returns
-    ---
-        tuple: A tuple containing the following items: image,
-            bboxes, labels.
-    '''
-    img_info = self.img_infos[idx]
-    ann_info = self._load_ann_info(idx)
+      list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
 
-    # load the image.
-    img = cv2.imread(osp.join(self.image_dir, img_info['file_name']), cv2.IMREAD_COLOR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    ori_shape = img.shape[:2]
-
-    # Load the annotation.
-    ann = self._parse_ann_info(ann_info)
-    bboxes = ann['bboxes'] #[x1,y1,x2,y2]
-    labels = ann['labels']
-    img,bboxes=self._transform(img,bboxes)
-
-    list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
-
-    pad_scale=(1,1)
-    return img.astype(np.float32), \
-           osp.join(self.image_dir, img_info['file_name']), \
-           np.array(pad_scale).astype(np.float32), \
-           np.array(ori_shape).astype(np.float32), \
-           list_grids[0].astype(np.float32), \
-           list_grids[1].astype(np.float32), \
-           list_grids[2].astype(np.float32),
+      pad_scale=(1,1)
+      return img.astype(np.float32), \
+             osp.join(self.image_dir, img_info['file_name']), \
+             osp.join(self.image_dir, img_info['file_name']), \
+             np.array(pad_scale).astype(np.float32), \
+             np.array(ori_shape).astype(np.float32), \
+             list_grids[0].astype(np.float32), \
+             list_grids[1].astype(np.float32), \
+             list_grids[2].astype(np.float32),
 
 
 
 
 
-def get_dataset(config):
-  config["subset"] = 'val'
+def get_dataset(dataset_root,batch_size):
   datatransform = transform.YOLO3DefaultValTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
-  valset = CocoDataSet(config,datatransform)
-  generator = DataGenerator(valset)
-  valset = tf.data.Dataset.from_generator(generator,
+  valset = CocoDataSet(dataset_root,datatransform,subset='val',shuffle=False)
+  valset = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
-  valset = valset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
+  valset = valset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
   # return valset,valset
-  config["subset"] = 'train'
   datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
-  trainset = CocoDataSet(config,datatransform)
-  generator = DataGenerator(trainset,shuffle=True)
-  trainset = tf.data.Dataset.from_generator(generator,
+  trainset = CocoDataSet(dataset_root,datatransform,subset='train',shuffle=True)
+  trainset = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
   #be careful to drop the last smaller batch if using tf.function
-  trainset = trainset.batch(config['batch_size'],drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+  trainset = trainset.batch(batch_size,drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return trainset, valset
 

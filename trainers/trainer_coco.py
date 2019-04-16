@@ -51,13 +51,13 @@ class Trainer(BaseTrainer):
 
   def _valid_epoch(self):
     print("validation start")
-    for idx_batch, (imgs, imgpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
+    for idx_batch, (imgs, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       if idx_batch%50==0:
           print("{}/5000 done".format(idx_batch*12))
       grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath, scale, ori_shapes)
+      self.TESTevaluator.append(grids, imgpath,annpath, scale, ori_shapes)
     result = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
     for k, v in zip(self.logger_coco, result):
@@ -66,7 +66,7 @@ class Trainer(BaseTrainer):
 
   def _train_epoch(self):
     with self.trainwriter.as_default():
-      for i, (img, imgpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
+      for i, (img, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
         self.global_iter.assign_add(1)
         if self.global_iter.numpy() % 100 == 0:
           print(self.global_iter.numpy())

@@ -4,5 +4,5 @@
 ### Computer Vision and Pattern Recognition, 2018          ###
 ##############################################################
 
-from .coco import get_dataset as get_coco
-from .pascal import get_dataset as get_pascal
+from .coco import get_dataset as get_COCO
+from .pascal import get_dataset as get_VOC

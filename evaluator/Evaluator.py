@@ -42,6 +42,8 @@ class Evaluator:
     whitepad = np.zeros(shape=(imPre.shape[0], 10, 3), dtype=np.uint8)
     imshow = np.concatenate((imGT, whitepad, imPre), axis=1)
     self.visual_imgs.append(imshow)
+    plt.imshow(imshow)
+    plt.show()
     if savepath:
       import os
       plt.imsave(os.path.join(savepath, '{}.png'.format(len(self.visual_imgs))), imshow)

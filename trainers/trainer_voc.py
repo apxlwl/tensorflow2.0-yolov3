@@ -54,11 +54,10 @@ class Trainer(BaseTrainer):
     print("validation start")
     for idx_batch, (imgs, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
       print(idx_batch)
-      self.args.valid_batch = 5
-      if idx_batch == self.args.valid_batch:  # to save time
+      if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes, visualize=True)
+      self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes)
     results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
     return results, imgs

@@ -128,12 +128,3 @@ VOC_LABEL = [
   "tvmonitor"
 ]
 
-if __name__ == '__main__':
-  def test1():
-    print("test1")
-
-
-  def test2():
-   print('test2')
-num=1
-eval('test{}'.format(num))()

@@ -10,20 +10,20 @@ from .Evaluator import Evaluator
 
 class EvaluatorVOC(Evaluator):
   def __init__(self, anchors,inputsize,cateNames,rootpath,score_thres,iou_thres,use_07_metric=False):
-    super().__init__(anchors,inputsize,cateNames,rootpath,score_thres,iou_thres)
     self.rec_pred = defaultdict(list)
     self.rec_gt = defaultdict(list)
     self.use_07_metric = use_07_metric
-    self._annopath = os.path.join(self.dataset_root, 'VOC2007', 'Annotations', '{}.xml')
-    self._imgpath = os.path.join(self.dataset_root, 'VOC2007', 'JPEGImages', '{}.jpg')
+    self._annopath = os.path.join(rootpath, 'VOC2007', 'Annotations', '{}.xml')
+    self._imgpath = os.path.join(rootpath, 'VOC2007', 'JPEGImages', '{}.jpg')
     self.reset()
-  
+    super().__init__(anchors, inputsize, cateNames, rootpath, score_thres, iou_thres)
+
   def reset(self):
     self.coco_imgIds = set([])
     self.visual_imgs = []
     self.rec_pred = defaultdict(list)
 
-  def append(self, grids, imgpath, annpath, padscale, orishape, visualize=False):
+  def append(self, grids, imgpath, annpath, padscale, orishape, visualize=True):
     grids = [grid.numpy() for grid in grids]
     padscale = padscale.numpy()
     imgpath = imgpath.numpy()

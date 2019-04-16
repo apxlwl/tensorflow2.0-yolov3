@@ -7,7 +7,7 @@ import tensorflow as tf
 import os
 from utils.dataset_util import DataGenerator
 from utils.visualize import visualize_boxes
-from base import COCO_LABEL,COCO_ANCHOR,VOC_LABEL,VOC_ANCHOR
+from base import VOC_LABEL,VOC_ANCHOR
 
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -15,18 +15,18 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 class VocDataset:
-  def __init__(self, configs, transform):
-    dataset_dir = configs['dataset_dir']
-    self.labels = configs['labels']
-    self.anchors = np.array(configs['anchors'])
+  def __init__(self, dataset_root,transform,subset,shuffle):
+    self.dataset_root = dataset_root
+    self.labels = VOC_LABEL
+    self.anchors = np.array(VOC_ANCHOR)
     self._transform = transform
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
     self._ids = []
-    self.shuffle = configs['shuffle']
-    for year, subset in configs['subset']:
-      rootpath = os.path.join(dataset_dir, 'VOC' + year)
-      for line in open(os.path.join(rootpath, 'ImageSets', 'Main', '{}.txt'.format(subset))):
+    self.shuffle = shuffle
+    for year, set in subset:
+      rootpath = os.path.join(dataset_root, 'VOC' + year)
+      for line in open(os.path.join(rootpath, 'ImageSets', 'Main', '{}.txt'.format(set))):
         self._ids.append((rootpath, line.strip()))
 
   def __len__(self):
@@ -57,27 +57,25 @@ class VocDataset:
             list_grids[1].astype(np.float32), \
             list_grids[2].astype(np.float32), \
 
-def get_dataset(config):
-  config["subset"] = [('2007', 'test')]
-  config['shuffle']=False
+def get_dataset(dataset_root,batch_size):
+  subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
-  valset = VocDataset(config, datatransform)
+  valset = VocDataset(dataset_root, datatransform,subset,shuffle=False)
 
   valset_iter = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                             tf.float32, tf.float32,tf.float32)))
-  valset_iter = valset_iter.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
-  return valset_iter,valset_iter,len(valset),len(valset)
-  config['subset'] = [('2007', 'trainval'), ('2012', 'trainval')]
-  config['shuffle']=True
+  valset_iter = valset_iter.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+
+  subset = [('2007', 'trainval'), ('2012', 'trainval')]
   datatransform = transform.YOLO3DefaultTrainTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
-  trainset = VocDataset(config, datatransform)
+  trainset = VocDataset(dataset_root, datatransform,subset,shuffle=True)
   trainset_iter = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                               tf.float32, tf.float32,tf.float32)))
   # be careful to drop the last smaller batch if using tf.function
-  trainset_iter = trainset_iter.batch(config['batch_size'], drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
-  return trainset_iter, valset_iter,len(trainset),len(valset)
+  trainset_iter = trainset_iter.batch(batch_size, drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+  return trainset_iter, valset_iter
 
 
 if __name__ == '__main__':

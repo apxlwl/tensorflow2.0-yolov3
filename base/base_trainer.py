@@ -1,22 +1,26 @@
 from utils.util import ensure_dir
 import tensorflow as tf
 from tensorflow import summary
-from dataset import get_coco,get_pascal
+from dataset import get_COCO, get_VOC
 import numpy as np
 import os
 import time
-from .anchors import COCO_ANCHOR,COCO_LABEL,VOC_ANCHOR,VOC_LABEL
+from .anchors import COCO_ANCHOR, COCO_LABEL, VOC_ANCHOR, VOC_LABEL
+
+
 class BaseTrainer:
   """
   Base class for all trainers
   """
+
   def __init__(self, args, model, optimizer):
     self.args = args
     self.model = model
     self.optimizer = optimizer
     self.experiment_name = args.experiment_name
     self.dataset_name = args.dataset_name
-    self.dataset_root= args.dataset_root
+    self.dataset_root = args.dataset_root
+    self.batch_size = args.batch_size
     self.global_iter = tf.Variable(0)
     self.global_epoch = tf.Variable(0)
     self.train_dataloader = None
@@ -24,10 +28,10 @@ class BaseTrainer:
     self.log_iter = self.args.log_iter
     self.evaluate = self.args.evaluate
     self.net_size = self.args.net_size
-    self.anchors = eval('{}_ANCHOR'.format(self.args.dataset.upper()))
-    self.labels= eval('{}_LABEL'.format(self.args.dataset.upper()))
+    self.anchors = eval('{}_ANCHOR'.format(self.args.dataset_name.upper()))
+    self.labels = eval('{}_LABEL'.format(self.args.dataset_name.upper()))
 
-    self.num_classes=len(self.labels)
+    self.num_classes = len(self.labels)
 
     self._get_model()
     self._get_SummaryWriter()
@@ -39,24 +43,25 @@ class BaseTrainer:
     pass
 
   def _get_checkpoint(self):
-    self.ckpt = tf.train.Checkpoint(step=self.global_iter,epoch=self.global_epoch, optimizer=self.optimizer, net=self.model)
+    self.ckpt = tf.train.Checkpoint(step=self.global_iter, epoch=self.global_epoch, optimizer=self.optimizer,
+                                    net=self.model)
     self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, self.save_path, max_to_keep=10)
     if self.args.resume:
       self._load_checkpoint()
 
   def _load_checkpoint(self):
     # TODO add a dummy step
-    if self.args.resume=="load_darknet":
-      self.model.load_darknet_params(os.path.join(self.configs["pretrained_model"],
-                                                  'darknet53.conv.74'),skip_detect_layer=True,body=True)
-    elif self.args.resume=="load_yolov3":
-      self.model.load_darknet_params(os.path.join(self.configs["pretrained_model"],
+    if self.args.resume == "load_darknet":
+      self.model.load_darknet_params(os.path.join(self.args.pretrained_model,
+                                                  'darknet53.conv.74'), skip_detect_layer=True, body=True)
+    elif self.args.resume == "load_yolov3":
+      self.model.load_darknet_params(os.path.join(self.args.pretrained_model,
                                                   'yolov3.weights'), skip_detect_layer=False, body=False)
     else:
       self.ckpt.restore(self.ckpt_manager.latest_checkpoint)
-      self.ckpt.restore(os.path.join(self.save_path,'ckpt-{}'.format(self.args.resume)))
-      self.global_iter=self.ckpt.step
-      self.global_epoch=self.ckpt.epoch
+      self.ckpt.restore(os.path.join(self.save_path, 'ckpt-{}'.format(self.args.resume)))
+      self.global_iter = self.ckpt.step
+      self.global_epoch = self.ckpt.epoch
     print("successfully load checkpoint {}".format(self.args.resume))
 
   def _get_model(self):
@@ -65,21 +70,23 @@ class BaseTrainer:
     self._prepare_device()
 
   def _prepare_device(self):
-    #TODO: add distributed training
+    # TODO: add distributed training
     pass
+
   def _get_SummaryWriter(self):
     if not self.args.debug and not self.args.evaluate:
-      ensure_dir(os.path.join('./summary/',self.experiment_name))
+      ensure_dir(os.path.join('./summary/', self.experiment_name))
       self.trainwriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
                                                                                           time.strftime(
                                                                                             "%m%d-%H-%M-%S",
                                                                                             time.localtime(
                                                                                               time.time()))))
+
   def _get_dataset(self):
-    if self.configs['dataset_name'].startswith("COCO"):
-      self.train_dataloader, self.test_dataloader = get_coco(self.configs['dataset'])
-    else:
-      self.train_dataloader, self.test_dataloader,self.num_train,self.num_test = get_pascal(self.configs['dataset'])
+    self.train_dataloader, self.test_dataloader = eval('get_{}'.format(self.dataset_name))(
+      dataset_root=self.dataset_root,
+      batch_size=self.args.batch_size)
+
   def _get_loggers(self):
     raise NotImplementedError
 
