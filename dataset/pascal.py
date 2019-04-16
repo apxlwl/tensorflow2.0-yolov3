@@ -39,7 +39,7 @@ class VocDataset:
       rootpath, filename = self._ids[idx]
       annpath = self._annopath.format(rootpath, filename)
       imgpath = self._imgpath.format(rootpath, filename)
-      fname, bboxes, labels = PascalVocXmlParser(annpath, self.labels).parse()
+      fname, bboxes, labels,_ = PascalVocXmlParser(annpath, self.labels).parse()
       img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
       img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
       ori_shape = img.shape[:2]

@@ -19,10 +19,10 @@ class PascalVocXmlParser(object):
     self.labels=labels
   def parse(self):
     fname= self.get_fname()
-    labels=self.get_labels()
+    labels,diffcults=self.get_labels()
     boxes=self.get_boxes()
     # assert os.path.exists(fname),"file {} does not exist".format(fname)
-    return fname,np.array(boxes),labels
+    return fname,np.array(boxes),labels,diffcults
   def get_fname(self):
     return os.path.join(self.root.find("filename").text)
 
@@ -38,10 +38,12 @@ class PascalVocXmlParser(object):
 
   def get_labels(self):
     labels = []
+    difficult = []
     obj_tags = self.root.findall("object")
     for t in obj_tags:
       labels.append(self.labels.index(t.find("name").text))
-    return labels
+      difficult.append(t.find("difficult").text)
+    return labels,difficult
 
   def get_boxes(self):
     bbs = []
@@ -56,7 +58,6 @@ class PascalVocXmlParser(object):
       bbs.append(box)
     bbs = np.array(bbs)
     return bbs
-
   def _root_tag(self, fname):
     tree = parse(fname)
     root = tree.getroot()

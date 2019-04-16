@@ -29,7 +29,7 @@ class BaseTrainer:
     self.num_test=None
 
     self._get_model()
-    # self._get_SummaryWriter()
+    self._get_SummaryWriter()
     self._get_checkpoint()
     self._get_dataset()
     self._get_loggers()
@@ -53,6 +53,7 @@ class BaseTrainer:
                                                   'yolov3.weights'), skip_detect_layer=False, body=False)
     else:
       self.ckpt.restore(self.ckpt_manager.latest_checkpoint)
+      self.ckpt.restore(os.path.join(self.save_path,'ckpt-{}'.format(self.args.resume)))
       self.global_iter=self.ckpt.step
       self.global_epoch=self.ckpt.epoch
     print("successfully load checkpoint {}".format(self.args.resume))

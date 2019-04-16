@@ -16,8 +16,8 @@ args.experiment_name = 'voc_scrach'
 args.learning_rate = 0.0001
 args.config_path = './configs/voc.json'
 args.total_epoch = 80
-args.log_iter = 5000
-args.resume = 2
+args.log_iter = 1
+args.resume = 72
 args.do_test = True
 with open(args.config_path, 'r') as f:
   configs = json.load(f)

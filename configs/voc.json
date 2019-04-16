@@ -142,7 +142,7 @@
     "debug": "True",
     "pad_mode": "fixed",
     "flip": 0,
-    "batch_size": 12,
+    "batch_size": 3,
     "anchors": [
       [
         10,

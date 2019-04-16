@@ -25,7 +25,7 @@ import PIL.Image as Image
 import PIL.ImageColor as ImageColor
 import PIL.ImageDraw as ImageDraw
 import PIL.ImageFont as ImageFont
-
+import matplotlib.pyplot as plt
 _TITLE_LEFT_MARGIN = 10
 _TITLE_TOP_MARGIN = 10
 STANDARD_COLORS = [
@@ -59,9 +59,8 @@ def visualize_boxes(image, boxes, labels, probs, class_labels):
   category_index = {}
   for id_, label_name in enumerate(class_labels):
     category_index[id_] = {"name": label_name}
-  # boxes = np.array([np.array([b[0], b[1], b[2], b[3]]) for b in boxes])
-  visualize_boxes_and_labels_on_image_array(image, boxes, labels, probs, category_index)
-
+  image=visualize_boxes_and_labels_on_image_array(image, boxes, labels, probs, category_index)
+  return image
 
 def visualize_boxes_and_labels_on_image_array(
     image,
