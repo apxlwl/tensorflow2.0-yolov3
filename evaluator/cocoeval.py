@@ -1,26 +1,26 @@
 from dataset.pycocotools.coco import COCO
 from dataset.pycocotools.cocoeval import COCOeval
-from utils.visualize import visualize_boxes
-import numpy as np
-import matplotlib.pyplot as plt
 from yolo.yolo_loss import predict_yolo
-from PIL import Image
+import os
 from .Evaluator import Evaluator
+
 class EvaluatorCOCO(Evaluator):
-  def __init__(self,anchors,inputsize,score_thres,iou_thres,idx2cate,cateNames):
-    super().__init__(anchors,inputsize,cateNames,score_thres,iou_thres)
+  def __init__(self,anchors,inputsize,cateNames,rootpath,score_thres,iou_thres,idx2cate):
+    super().__init__(anchors,inputsize,cateNames,rootpath,score_thres,iou_thres)
     self.coco_imgIds=set([])
     self.coco_results=[]
     self.idx2cat=idx2cate
     self.cat2idx= {int(v): int(k) for k, v in self.idx2cat.items()}
     self.reset()
-    self.visual_imgs=[]
-    self.cocoGt = COCO('/home/gwl/datasets/coco2017/annotations/instances_val2017.json')
+
   def reset(self):
     self.coco_imgIds=set([])
     self.coco_results=[]
     self.visual_imgs=[]
-  def append(self,grids,imgpath,padscale,orishape,visualize=False):
+  def build_GT(self):
+    self.cocoGt = COCO(os.path.join(self.dataset_root,'/annotations/instances_val2017.json'))
+
+  def append(self,grids,imgpath,annpath,padscale,orishape):
     grids = [grid.numpy() for grid in grids]
     padscale = padscale.numpy()
     imgpath = imgpath.numpy()
@@ -42,26 +42,16 @@ class EvaluatorCOCO(Evaluator):
             "bbox": [_boxes[i][1], _boxes[i][0], _boxes[i][3] - _boxes[i][1], _boxes[i][2] - _boxes[i][0]],
             "score": float(_scores[i])
           })
-        if visualize and len(self.visual_imgs)<10:
-          imPre = np.array(Image.open(_imgpath).convert('RGB'))
-          imGT=imPre.copy()
+        if len(self.visual_imgs)<self.num_visual:
           annIDs=self.cocoGt.getAnnIds(imgIds=[_image_id])
           boxGT=[]
           labelGT=[]
-          scoreGT=[]
           for id in annIDs:
             ann=self.cocoGt.anns[id]
             x,y,w,h=ann['bbox']
             boxGT.append([x,y,x+w,y+h])
             labelGT.append(self.cat2idx[ann['category_id']])
-            scoreGT.append(1.0)
-          _boxes=np.concatenate((np.expand_dims(_boxes[:,1],1),np.expand_dims(_boxes[:,0],1),np.expand_dims(_boxes[:,3],1),np.expand_dims(_boxes[:,2],1)),1)
-          visualize_boxes(image=imPre, boxes=_boxes, labels=_labels, probs=_scores, class_labels=self.cateNames)
-          visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT), class_labels=self.cateNames)
-          whitepad=np.zeros(shape=(imPre.shape[0],10,3),dtype=np.uint8)
-          imshow=np.concatenate((imGT,whitepad,imPre),axis=1)
-          self.visual_imgs.append(imshow)
-
+          self.append_visulize(_imgpath,_boxes,_labels,_scores,boxGT,labelGT)
   def evaluate(self):
     try:
       cocoDt = self.cocoGt.loadRes(self.coco_results)

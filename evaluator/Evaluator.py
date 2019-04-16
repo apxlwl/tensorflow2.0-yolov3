@@ -7,35 +7,30 @@ from yolo.yolo_loss import predict_yolo
 from PIL import Image
 
 class Evaluator:
-  def __init__(self,anchors,inputsize,cateNames,score_thres=0.01,iou_thres=0.5,visualize=True):
+  def __init__(self,anchors,inputsize,cateNames,rootpath,score_thres=0.01,iou_thres=0.5,visualize=True):
     self.anchors=anchors
     self.inputsize = inputsize
     self.score_thres=score_thres
     self.iou_thres=iou_thres
     self.cateNames = cateNames
-
+    self.dataset_root=rootpath
 
     self.visual = visualize
     self.visual_imgs = []
+    #show 10 images in tensorboard by default
+    self.num_visual=10
+    self.build_GT()
   def reset(self):
     pass
 
-  def append(self,grids,imgpath,padscale,orishape):
-    '''
-    evaluate and append results for single image
-    :param grids:
-    :param imgpath:
-    :param padscale:
-    :param orishape:
-    :return:
-    '''
-    raise
+  def append(self,grids,imgpath,annpath,padscale,orishape):
+    raise NotImplementedError
 
   def build_GT(self):
-    pass
+    raise NotImplementedError
 
   def evaluate(self):
-    pass
+    raise NotImplementedError
 
   def append_visulize(self, imgpath, boxesPre, labelsPre, scoresPre, boxGT, labelGT, savepath=None):
     imPre = np.array(Image.open(imgpath).convert('RGB'))

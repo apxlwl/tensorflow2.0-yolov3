@@ -6,30 +6,21 @@ from PIL import Image
 from utils.dataset_util import PascalVocXmlParser
 from collections import defaultdict
 import os
+from .Evaluator import Evaluator
 
-
-class EvaluatorVOC:
-  def __init__(self, anchors, inputsize, threshold, idx2cate, cateNames, root_path,use_07_metric=False):
-    self.anchors = anchors
-    self.inputsize = inputsize
-    self.cls_threshold = threshold
-    self.idx2cat = idx2cate
-    self.cat2idx = {int(v): int(k) for k, v in self.idx2cat.items()}
-    self.cateNames = cateNames
-    self.visual_imgs = []
-    self.root_path = root_path
+class EvaluatorVOC(Evaluator):
+  def __init__(self, anchors,inputsize,cateNames,rootpath,score_thres,iou_thres,use_07_metric=False):
+    super().__init__(anchors,inputsize,cateNames,rootpath,score_thres,iou_thres)
     self.rec_pred = defaultdict(list)
     self.rec_gt = defaultdict(list)
     self.use_07_metric = use_07_metric
-    self._annopath = os.path.join(root_path, 'VOC2007', 'Annotations', '{}.xml')
-    self._imgpath = os.path.join(root_path, 'VOC2007', 'JPEGImages', '{}.jpg')
-    self._build_anno()
+    self._annopath = os.path.join(self.dataset_root, 'VOC2007', 'Annotations', '{}.xml')
+    self._imgpath = os.path.join(self.dataset_root, 'VOC2007', 'JPEGImages', '{}.jpg')
     self.reset()
-
+  
   def reset(self):
     self.coco_imgIds = set([])
     self.visual_imgs = []
-    self.imgCounter = -1
     self.rec_pred = defaultdict(list)
 
   def append(self, grids, imgpath, annpath, padscale, orishape, visualize=False):
@@ -39,7 +30,6 @@ class EvaluatorVOC:
     annpath = annpath.numpy()
     orishape = orishape.numpy()
     for idx in range(imgpath.shape[0]):
-      self.imgCounter += 1
       _imgpath = imgpath[idx].decode('UTF-8')
       _annpath = annpath[idx].decode('UTF-8')
       _grid = [feature[idx] for feature in grids]
@@ -59,23 +49,9 @@ class EvaluatorVOC:
           }
           self.rec_pred[_labels[i]].append(rec)
 
-        if visualize and len(self.visual_imgs) < 10:
+        if visualize and len(self.visual_imgs) < self.num_visual:
           _, boxGT, labelGT, _ = PascalVocXmlParser(str(_annpath), self.cateNames).parse()
           self.append_visulize(_imgpath, _boxes, _labels, _scores, boxGT, labelGT)
-
-  def append_visulize(self, imgpath, boxesPre, labelsPre, scoresPre, boxGT, labelGT, savepath=None):
-    imPre = np.array(Image.open(imgpath).convert('RGB'))
-    imGT = imPre.copy()
-    scoreGT = np.ones(shape=(boxGT.shape[0],))
-    visualize_boxes(image=imPre, boxes=boxesPre, labels=labelsPre, probs=scoresPre, class_labels=self.cateNames)
-    visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT),
-                    class_labels=self.cateNames)
-    whitepad = np.zeros(shape=(imPre.shape[0], 10, 3), dtype=np.uint8)
-    imshow = np.concatenate((imGT, whitepad, imPre), axis=1)
-    self.visual_imgs.append(imshow)
-    if savepath:
-      import os
-      plt.imsave(os.path.join(savepath, '{}.png'.format(len(self.visual_imgs))), imshow)
 
   def evaluate(self):
     aps = []
@@ -157,8 +133,8 @@ class EvaluatorVOC:
     print('Mean AP = {:.4f}'.format(np.mean(aps)))
     aps.append(np.mean(aps))
     return aps
-  def _build_anno(self):
-    filepath = os.path.join(self.root_path, 'VOC2007', 'ImageSets', 'Main', 'test.txt')
+  def build_GT(self):
+    filepath = os.path.join(self.dataset_root, 'VOC2007', 'ImageSets', 'Main', 'test.txt')
     with open(filepath, 'r') as f:
       filelist = f.readlines()
 
@@ -207,10 +183,10 @@ class EvaluatorVOC:
 
 
 if __name__ == '__main__':
-  root_path = '/disk3/datasets/voc'
-  _annopath = os.path.join(root_path, 'VOC2007', 'Annotations', '{}.xml')
-  _imgpath = os.path.join(root_path, 'VOC2007', 'JPEGImages', '{}.jpg')
-  filepath = os.path.join(root_path, 'VOC2007', 'ImageSets', 'Main', 'test.txt')
+  dataset_root = '/disk3/datasets/voc'
+  _annopath = os.path.join(dataset_root, 'VOC2007', 'Annotations', '{}.xml')
+  _imgpath = os.path.join(dataset_root, 'VOC2007', 'JPEGImages', '{}.jpg')
+  filepath = os.path.join(dataset_root, 'VOC2007', 'ImageSets', 'Main', 'test.txt')
   with open(filepath, 'r') as f:
     filelist = f.readlines()
   cateNames = [
