@@ -92,5 +92,8 @@ if __name__ == '__main__':
   assert 0
   for epoch in range(5):
     for idx, inputs in enumerate(train):
-      if idx==3:
-        break
+      img=inputs[0]
+      for im in img:
+        print(im.shape)
+        plt.imshow(im)
+        plt.show()

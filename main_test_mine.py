@@ -1,6 +1,6 @@
 from options import Options
 from yolo.net.yolonet import Yolonet
-from trainers.trainer_voc import Trainer
+from trainers.trainer_coco import Trainer
 import tensorflow.python.keras as keras
 from tensorflow import keras
 import tensorflow as tf
@@ -13,16 +13,16 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'voc_scrach'
+args.experiment_name = 'darknet_new2'
 args.learning_rate = 0.001
-args.config_path = './configs/voc.json'
+args.config_path = './configs/coco.json'
 args.total_epoch = 80
 args.log_iter = 5000
-args.resume = 'load_darknet'
+args.resume = 3
 args.do_test = True
 with open(args.config_path, 'r') as f:
   configs = json.load(f)
-net = Yolonet(n_classes=20)
+net = Yolonet(n_classes=80)
 optimizer = keras.optimizers.SGD(learning_rate=args.learning_rate,
                                  momentum=args.momentum)
 

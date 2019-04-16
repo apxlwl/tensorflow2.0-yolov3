@@ -111,7 +111,6 @@ def preprocess(boxes,labels,input_shape,class_num,anchors):
   y_true_13 = np.zeros((input_shape[1] // 32, input_shape[0] // 32, 3, 5 + class_num), np.float32)
   y_true_list=[y_true_52,y_true_26,y_true_13]
   grid_shapes=[input_shape//8,input_shape//16,input_shape//32]
-
   for idx,match_id in enumerate(best_ious):
     group_idx=match_id//3
     sub_idx=match_id%3
