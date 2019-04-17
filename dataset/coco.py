@@ -117,12 +117,12 @@ class CocoDataSet(object):
       ann = self._parse_ann_info(ann_info)
       bboxes = ann['bboxes'] #[x1,y1,x2,y2]
       labels = ann['labels']
-      img,bboxes=self._transform(img,bboxes)
+      img,bboxes=self._transform(416,416,img,bboxes)
 
       list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
 
       pad_scale=(1,1)
-      return img.astype(np.float32), \
+      yield img.astype(np.float32), \
              osp.join(self.image_dir, img_info['file_name']), \
              osp.join(self.image_dir, img_info['file_name']), \
              np.array(pad_scale).astype(np.float32), \
@@ -136,14 +136,14 @@ class CocoDataSet(object):
 
 
 def get_dataset(dataset_root,batch_size):
-  datatransform = transform.YOLO3DefaultValTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
+  datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
   valset = CocoDataSet(dataset_root,datatransform,subset='val',shuffle=False)
   valset = tf.data.Dataset.from_generator(valset,
-                                          ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
+                                          ((tf.float32, tf.string,tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
   valset = valset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-  # return valset,valset
-  datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
+  return valset,valset
+  datatransform = transform.YOLO3DefaultTrainTransform(mean=(0,0,0),std=(1,1,1))
   trainset = CocoDataSet(dataset_root,datatransform,subset='train',shuffle=True)
   trainset = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
@@ -158,10 +158,7 @@ if __name__ == '__main__':
   import json
   import matplotlib.pyplot as plt
 
-  with open('../configs/coco.json', 'r') as f:
-    configs = json.load(f)
-  configs['dataset']['dataset_dir']='/disk2/datasets/coco'
-  train, val = get_dataset(configs['dataset'])
+  train, val = get_dataset('/home/gwl/datasets/coco2017',8)
   for i, inputs in enumerate(val):
     img = inputs[0][0].numpy()
     print(inputs[0][-2].shape)

@@ -13,15 +13,14 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'darknet_new2'
+args.experiment_name = 'test'
 args.learning_rate = 0.00001
 args.config_path = './configs/coco.json'
 args.total_epoch = 80
+args.dataset_root='/home/gwl/datasets/coco2017'
 #args.log_iter = 5000
 args.resume = 'load_darknet'
 # args.do_test = True
-with open(args.config_path, 'r') as f:
-  configs = json.load(f)
 net = Yolonet(n_classes=80)
 # lr_schedule = keras.optimizers.schedules.PiecewiseConstantDecay(
 #   boundaries=[50,100],

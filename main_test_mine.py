@@ -1,6 +1,6 @@
 from options import Options
 from yolo.net.yolonet import Yolonet
-from trainers.trainer_coco import Trainer
+from trainers.trainer_voc import Trainer
 import tensorflow.python.keras as keras
 from tensorflow import keras
 import tensorflow as tf
@@ -9,25 +9,34 @@ import os
 
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'darknet_new2'
-args.learning_rate = 0.001
-args.config_path = './configs/coco.json'
-args.total_epoch = 80
+args.experiment_name = 'test'
+args.dataset_name='VOC'
+args.dataset_root='/home/gwl/datasets/VOCdevkit'
+args.lr_initial = 1e-4
+args.config_path = './configs/voc.json'
+args.total_epoch = 150
 args.log_iter = 5000
-args.resume = 3
-args.do_test = True
-with open(args.config_path, 'r') as f:
-  configs = json.load(f)
-net = Yolonet(n_classes=80)
-optimizer = keras.optimizers.SGD(learning_rate=args.learning_rate,
+args.batch_size = 6
+args.net_size=416
+args.resume = 'load_darknet'
+# args.resume = 145
+# args.do_test = True
+
+net = Yolonet(n_classes=20)
+
+lr_schedule = keras.experimental.CosineDecay(
+  initial_learning_rate=args.lr_initial,
+  decay_steps=args.total_epoch*2760,
+  alpha=0.01
+)
+optimizer = keras.optimizers.SGD(learning_rate=lr_schedule,
                                  momentum=args.momentum)
 
 _Trainer = Trainer(args=args,
-                   config=configs,
                    model=net,
                    optimizer=optimizer,
                    )

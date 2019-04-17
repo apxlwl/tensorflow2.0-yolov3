@@ -99,7 +99,7 @@ class EvaluatorCOCO(Evaluator):
     self.coco_results=[]
     self.visual_imgs=[]
   def build_GT(self):
-    self.cocoGt = COCO(os.path.join(self.dataset_root,'/annotations/instances_val2017.json'))
+    self.cocoGt = COCO(os.path.join(self.dataset_root,'annotations/instances_val2017.json'))
 
   def append(self,grids,imgpath,annpath,padscale,orishape):
     grids = [grid.numpy() for grid in grids]

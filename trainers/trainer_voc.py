@@ -35,11 +35,11 @@ class Trainer(BaseTrainer):
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  # @tf.function
+  @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
-      inputshape=imgs.shape[1:3]
+      inputshape=tf.shape(imgs)[1:3]
       loss_box, loss_conf, loss_class = loss_yolo(outputs, labels, anchors=self.anchors,
                                                   inputshape=inputshape,
                                                   num_classes=self.num_classes)
@@ -70,11 +70,10 @@ class Trainer(BaseTrainer):
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       img, _, _, _, _, *labels=inputs
       self.global_iter.assign_add(1)
-      if self.global_iter.numpy() % 100 == 0:
+      if self.global_iter.numpy() % 1 == 0:
         print(self.global_iter.numpy())
         for k, v in self.logger_losses.items():
           print(k, ":", v.result().numpy())
-
       _ = self.train_step(img, labels)
 
       if self.global_iter.numpy() % self.log_iter == 0:

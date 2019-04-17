@@ -9,4 +9,6 @@ class A:
 
 import tensorflow as tf
 a=tf.TensorShape(5)
-print(a*tf.TensorShape(8))
+b=tf.constant(3,dtype=tf.int64)
+c=tf.constant(10,dtype=tf.int64)
+print(b*c)

@@ -5,7 +5,7 @@ from utils.nms_utils import gpu_nms
 
 def process_output(feature_map, anchors, input_shape, num_classes, training=True):
   anchors = tf.reshape(anchors, shape=[1, 1, 1, 3, 2])
-  grid_size = feature_map.shape[1:3]  # y,x
+  grid_size = tf.shape(feature_map)[1:3]  # y,x
   feature_map = tf.reshape(feature_map, [-1, grid_size[0], grid_size[1], 3, 5 + num_classes])
   box_centers, box_wh, conf_logits, prob_logits = tf.split(feature_map, [2, 2, 1, num_classes], axis=-1)  # xywh
 
@@ -67,13 +67,13 @@ def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
   inputshape = tf.cast(inputshape, tf.float32)
-  batchsize = tf.cast(feature_map_list[0].shape[0], tf.float32)
+  batchsize = tf.cast(tf.shape(feature_map_list[0])[0], tf.float32)
   batch_box = 0
   batch_conf = 0
   batch_class = 0
 
   for idx in range(3):
-    _grid_shape = tf.cast(feature_map_list[idx].shape[1:3], tf.float32)
+    _grid_shape = tf.cast(tf.shape(feature_map_list[idx])[1:3], tf.float32)
     _featurelist, _anchor, _gt = feature_map_list[idx], anchors[idx], gt_list[idx]
     _object_mask = _gt[..., 4:5]
     _true_class_probs = _gt[..., 5:]
