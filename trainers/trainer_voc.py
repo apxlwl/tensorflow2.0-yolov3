@@ -53,8 +53,6 @@ class Trainer(BaseTrainer):
 
   def _valid_epoch(self):
     for idx_batch, inputs in enumerate(self.test_dataloader):
-      # if idx_batch ==5:
-      #   break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, scale, ori_shapes, *_)=inputs
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
