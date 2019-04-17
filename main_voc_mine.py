@@ -13,24 +13,23 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'test'
+args.experiment_name = 'voc_multi'
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'
 args.lr_initial = 1e-4
-args.config_path = './configs/voc.json'
 args.total_epoch = 150
 args.log_iter = 5000
 args.batch_size = 6
-args.net_size= 416
+args.net_size= 608
 args.resume = 'load_darknet'
 # args.resume = 145
 # args.do_test = True
-
+lensVOC=16551
 net = Yolonet(n_classes=20)
 
 lr_schedule = keras.experimental.CosineDecay(
   initial_learning_rate=args.lr_initial,
-  decay_steps=args.total_epoch*2760,
+  decay_steps=args.total_epoch*(lensVOC//args.batch_size),
   alpha=0.01
 )
 optimizer = keras.optimizers.SGD(learning_rate=lr_schedule,

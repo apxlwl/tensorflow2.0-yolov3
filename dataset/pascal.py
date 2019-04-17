@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
-class VocDataset:
+class VOCdataset:
   def __init__(self, dataset_root,transform,subset,batchsize,shuffle):
     self.dataset_root = dataset_root
     self.labels = VOC_LABEL
@@ -42,7 +42,7 @@ class VocDataset:
       if self.shuffle:
         trainsize=random.choice(self.multisizes)
       else:
-        trainsize =416
+        trainsize =608
       img_batch=[]
       imgpath_batch=[]
       annpath_batch=[]
@@ -84,7 +84,7 @@ class VocDataset:
 def get_dataset(dataset_root,batch_size):
   subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
-  valset = VocDataset(dataset_root, datatransform,subset,batch_size,shuffle=False)
+  valset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=False)
 
   valset_iter = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
@@ -93,7 +93,7 @@ def get_dataset(dataset_root,batch_size):
 
   subset = [('2007', 'trainval'), ('2012', 'trainval')]
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
-  trainset = VocDataset(dataset_root, datatransform,subset,batch_size,shuffle=True)
+  trainset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=True)
   trainset_iter = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                               tf.float32, tf.float32,tf.float32)))
@@ -107,9 +107,10 @@ if __name__ == '__main__':
   import matplotlib.pyplot as plt
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   subset = [('2007', 'trainval'), ('2012', 'trainval')]
-  batch_size=8
-  trainset = VocDataset('/home/gwl/datasets/VOCdevkit', datatransform, subset, batch_size, shuffle=True)
-
+  batch_size=1
+  trainset = VOCdataset('/home/gwl/datasets/VOCdevkit', datatransform, subset, batch_size, shuffle=True)
+  print(len(trainset))
+  assert 0
   train, val = get_dataset('/home/gwl/datasets/VOCdevkit',8)
   for epoch in range(5):
     for idx, inputs in enumerate(val):

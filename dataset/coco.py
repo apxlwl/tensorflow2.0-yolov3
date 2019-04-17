@@ -10,7 +10,7 @@ tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-class CocoDataSet(object):
+class COCOdataset(object):
   def __init__(self, dataset_root,transform,subset,shuffle):
     self.dataset_root = dataset_root
     self.image_dir = "{}/images/{}2017".format(dataset_root, subset)
@@ -137,14 +137,13 @@ class CocoDataSet(object):
 
 def get_dataset(dataset_root,batch_size):
   datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
-  valset = CocoDataSet(dataset_root,datatransform,subset='val',shuffle=False)
+  valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False)
   valset = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
   valset = valset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-  return valset,valset
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0,0,0),std=(1,1,1))
-  trainset = CocoDataSet(dataset_root,datatransform,subset='train',shuffle=True)
+  trainset = COCOdataset(dataset_root,datatransform,subset='train',shuffle=True)
   trainset = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))

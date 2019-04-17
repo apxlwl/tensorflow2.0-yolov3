@@ -70,7 +70,7 @@ class Trainer(BaseTrainer):
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       img, _, _, _, _, *labels=inputs
       self.global_iter.assign_add(1)
-      if self.global_iter.numpy() % 1 == 0:
+      if self.global_iter.numpy() % 100 == 0:
         print(self.global_iter.numpy())
         for k, v in self.logger_losses.items():
           print(k, ":", v.result().numpy())
@@ -78,7 +78,6 @@ class Trainer(BaseTrainer):
 
       if self.global_iter.numpy() % self.log_iter == 0:
         results, imgs = self._valid_epoch()
-
         with self.trainwriter.as_default():
           for k, v in zip(self.logger_voc, results):
             tf.summary.scalar(k, v, step=self.global_iter.numpy())
