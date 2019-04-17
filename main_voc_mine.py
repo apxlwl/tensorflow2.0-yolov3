@@ -30,7 +30,7 @@ net = Yolonet(n_classes=20)
 
 lr_schedule = keras.experimental.CosineDecay(
   initial_learning_rate=args.lr_initial,
-  decay_steps=args.total_epoch*1380,
+  decay_steps=args.total_epoch*2760,
   alpha=0.01
 )
 optimizer = keras.optimizers.SGD(learning_rate=lr_schedule,
