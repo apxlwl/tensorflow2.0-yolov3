@@ -35,12 +35,13 @@ class Trainer(BaseTrainer):
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  @tf.function
+  # @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
+      inputshape=imgs.shape[1:3]
       loss_box, loss_conf, loss_class = loss_yolo(outputs, labels, anchors=self.anchors,
-                                                  inputshape=(self.net_size, self.net_size),
+                                                  inputshape=inputshape,
                                                   num_classes=self.num_classes)
       loss = tf.reduce_sum(loss_box + loss_conf + loss_class)
     grads = tape.gradient(loss, self.model.trainable_variables)
@@ -51,33 +52,23 @@ class Trainer(BaseTrainer):
     return outputs
 
   def _valid_epoch(self):
-    print("validation start")
-    s=time.time()
     for idx_batch, inputs in enumerate(self.test_dataloader):
-      if idx_batch ==5:
-        break
+      # if idx_batch ==5:
+      #   break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
-      (imgs, imgpath, annpath, scale, ori_shapes, *labels)=inputs
+      (imgs, imgpath, annpath, scale, ori_shapes, *_)=inputs
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes)
     results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
-    print(time.time()-s)
     return results, imgs
 
   def _train_epoch(self):
     for i, inputs in enumerate(self.train_dataloader):
-      if i ==5:
-        break
-      print(i)
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       img, _, _, _, _, *labels=inputs
-      print(img.shape)
-      print(labels[0].shape)
-      print(labels[1].shape)
-      print(labels[2].shape)
       self.global_iter.assign_add(1)
       if self.global_iter.numpy() % 100 == 0:
         print(self.global_iter.numpy())

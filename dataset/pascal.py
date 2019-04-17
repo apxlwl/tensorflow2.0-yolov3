@@ -114,11 +114,11 @@ if __name__ == '__main__':
   for epoch in range(5):
     for idx, inputs in enumerate(val):
       inputs=[tf.squeeze(input,axis=0) for input in inputs]
-      # print(inputs[0].shape)
+      print(inputs[0].shape[1:3])
       # print(inputs[1].shape)
       # print(inputs[-1].shape)
       print(idx)
-    assert 0
+      assert 0
   #     for im in img:
   #       print(im.shape)
   #       plt.imshow(im)

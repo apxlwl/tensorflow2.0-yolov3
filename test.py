@@ -7,5 +7,6 @@ class A:
   def print(self):
     return self.__len__()
 
-a=A()
-print(a.print())
+import tensorflow as tf
+a=tf.TensorShape(5)
+print(a*tf.TensorShape(8))
