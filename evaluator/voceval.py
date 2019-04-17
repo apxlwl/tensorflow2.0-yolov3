@@ -125,8 +125,6 @@ class EvaluatorVOC(Evaluator):
         prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
         ap = self.voc_ap(rec, prec, self.use_07_metric)
       else:
-        rec = -1.
-        prec = -1.
         ap = -1.
       print("AP for {}: {:.4f}".format(cls, ap))
       aps.append(ap)
