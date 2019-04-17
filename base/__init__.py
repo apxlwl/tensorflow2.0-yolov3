@@ -1,1 +1,1 @@
-from .anchors import *
+from .config import *

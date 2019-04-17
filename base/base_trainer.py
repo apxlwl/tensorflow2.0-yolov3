@@ -5,7 +5,7 @@ from dataset import get_COCO, get_VOC
 import numpy as np
 import os
 import time
-from .anchors import COCO_ANCHOR, COCO_LABEL, VOC_ANCHOR, VOC_LABEL
+from base import COCO_ANCHOR, COCO_LABEL, VOC_ANCHOR, VOC_LABEL
 
 
 class BaseTrainer:
@@ -38,9 +38,6 @@ class BaseTrainer:
     self._get_checkpoint()
     self._get_dataset()
     self._get_loggers()
-
-  def is_better(self, new, old):
-    pass
 
   def _get_checkpoint(self):
     self.ckpt = tf.train.Checkpoint(step=self.global_iter, epoch=self.global_epoch, optimizer=self.optimizer,
@@ -87,13 +84,14 @@ class BaseTrainer:
       dataset_root=self.dataset_root,
       batch_size=self.args.batch_size)
 
-  def _get_loggers(self):
-    raise NotImplementedError
-
   def train(self):
     for epoch in range(self.global_epoch.numpy(), self.args.total_epoch):
       self.global_epoch.assign_add(1)
       self._train_epoch()
+
+  def _get_loggers(self):
+    raise NotImplementedError
+
 
   @tf.function
   def train_step(self, inputs, gts):

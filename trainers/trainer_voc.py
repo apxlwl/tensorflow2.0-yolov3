@@ -3,7 +3,7 @@ import tensorflow as tf
 from evaluator.voceval import EvaluatorVOC
 from tensorflow.python.keras import metrics
 from yolo.yolo_loss import loss_yolo
-
+import time
 
 class Trainer(BaseTrainer):
   def __init__(self, args, model, optimizer):
@@ -52,18 +52,32 @@ class Trainer(BaseTrainer):
 
   def _valid_epoch(self):
     print("validation start")
-    for idx_batch, (imgs, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      print(idx_batch)
+    s=time.time()
+    for idx_batch, inputs in enumerate(self.test_dataloader):
+      if idx_batch ==5:
+        break
+      inputs = [tf.squeeze(input, axis=0) for input in inputs]
+      (imgs, imgpath, annpath, scale, ori_shapes, *labels)=inputs
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       grids = self.model(imgs, training=False)
       self.TESTevaluator.append(grids, imgpath, annpath, scale, ori_shapes)
     results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
+    print(time.time()-s)
     return results, imgs
 
   def _train_epoch(self):
-    for i, (img, imgpath, annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
+    for i, inputs in enumerate(self.train_dataloader):
+      if i ==5:
+        break
+      print(i)
+      inputs = [tf.squeeze(input, axis=0) for input in inputs]
+      img, _, _, _, _, *labels=inputs
+      print(img.shape)
+      print(labels[0].shape)
+      print(labels[1].shape)
+      print(labels[2].shape)
       self.global_iter.assign_add(1)
       if self.global_iter.numpy() % 100 == 0:
         print(self.global_iter.numpy())

@@ -13,20 +13,26 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'voc_scrach'
+args.experiment_name = 'voc_cosin'
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'
-args.learning_rate = 0.00001
+args.lr_initial = 1e-4
 args.config_path = './configs/voc.json'
-args.total_epoch = 300
+args.total_epoch = 150
 args.log_iter = 5000
-# args.resume = 'load_darknet'
-args.resume = 115 
+args.batch_size = 4
+args.resume = 'load_darknet'
+# args.resume = 145
 # args.do_test = True
-with open(args.config_path, 'r') as f:
-  configs = json.load(f)
+
 net = Yolonet(n_classes=20)
-optimizer = keras.optimizers.SGD(learning_rate=args.learning_rate,
+
+lr_schedule = keras.experimental.CosineDecay(
+  initial_learning_rate=args.lr_initial,
+  decay_steps=args.total_epoch*1380,
+  alpha=0.01
+)
+optimizer = keras.optimizers.SGD(learning_rate=lr_schedule,
                                  momentum=args.momentum)
 
 _Trainer = Trainer(args=args,

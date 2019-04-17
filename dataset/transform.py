@@ -19,31 +19,28 @@ class YOLO3DefaultValTransform(object):
 
   """
 
-  def __init__(self, width, height, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-    self._width = width
-    self._height = height
+  def __init__(self,  mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
     self._mean = mean
     self._std = std
 
-  def __call__(self, img, bbox):
+  def __call__(self, width, height,img, bbox):
     """Apply transform to validation image/label."""
     # resize
     h, w, _ = img.shape
-    img = timage.img_resize(img, out_size=(self._width, self._height))
-    bbox = tbbox.bbox_resize(bbox, (w, h), (self._width, self._height))
+    img = timage.img_resize(img, out_size=(width, height))
+    bbox = tbbox.bbox_resize(bbox, (w, h), (width, height))
     img=timage.imnormalize(img,self._mean,self._std)
     return img, bbox.astype(img.dtype)
 
 
 class YOLO3DefaultTrainTransform(object):
-  def __init__(self, width, height, mean=(0.485, 0.456, 0.406),
+  def __init__(self, mean=(0.485, 0.456, 0.406),
                std=(0.229, 0.224, 0.225)):
-    self._width = width
-    self._height = height
+
     self._mean = mean
     self._std = std
 
-  def __call__(self, img, bbox):
+  def __call__(self,width, height, img, bbox):
     """
     :param image:np.array HWC
     :param bbox:np.array box N,4 x1y1x2y2
@@ -64,8 +61,8 @@ class YOLO3DefaultTrainTransform(object):
     img=timage.fixed_crop(img,x0,y0,w,h)
 
     #resize
-    img=timage.img_resize(img,out_size=(self._width,self._height))
-    bbox = tbbox.bbox_resize(bbox,(w,h),(self._width,self._height))
+    img=timage.img_resize(img,out_size=(width,height))
+    bbox = tbbox.bbox_resize(bbox,(w,h),(width,height))
 
     #flip
     h, w, _ = img.shape

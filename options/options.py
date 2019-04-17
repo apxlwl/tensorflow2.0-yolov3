@@ -13,7 +13,7 @@ class Options():
     parser.add_argument('--total_epoch', type=int, default=100, help='Number of epochs to train.')
 
     parser.add_argument('--batch_size', type=int,default=12, help='Batch size for training.')
-    parser.add_argument('--learning_rate', type=float, default=0.002, help='The Learning Rate.')
+    parser.add_argument('--lr_initial', type=float, default=1e-4, help='The Learning Rate.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Momentum.')
     parser.add_argument('--decay', type=float, default=0.0005, help='Weight decay (L2 penalty).')
 
