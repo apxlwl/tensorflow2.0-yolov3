@@ -42,7 +42,7 @@ class VocDataset:
       if self.shuffle:
         trainsize=random.choice(self.multisizes)
       else:
-        trainsize =544
+        trainsize =416
       img_batch=[]
       imgpath_batch=[]
       annpath_batch=[]
