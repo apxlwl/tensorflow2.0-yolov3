@@ -304,16 +304,43 @@ def random_expand(src, max_ratio=2, keep_ratio=True):
   dst[off_y:off_y + h, off_x:off_x + w, :] = src
   return dst, (off_x, off_y, ow, oh)
 
+def makeImgPyramids(imgs,scales,flip=False):
+  rescaled_imgs=[]
+  for scale in scales:
+    rescaled_img=[]
+    for img in imgs:
+      scaled_img=cv2.resize(img,dsize=(scale,scale))
+      rescaled_img.append(scaled_img)
+    rescaled_imgs.append(np.array(rescaled_img))
+  if not flip:
+    return rescaled_imgs
+  else:
+    fliped_imgs=[]
+    for pyramid in rescaled_imgs:
+      fliped_img=[np.fliplr(img) for img in pyramid]
+      fliped_imgs.append(np.array(fliped_img))
+    return rescaled_imgs+fliped_imgs
 
 if __name__ == '__main__':
   from PIL import Image
   import matplotlib.pyplot as plt
   import os
+  from base import TEST_INPUT_SIZES
   root = '/home/gwl/datasets/coco2017/images/val2017'
   filelist = os.listdir(root)
   # for i in range(5):
   img = np.array(Image.open(os.path.join(root, filelist[0])))
+  img = cv2.resize(img,(608,608))
+  img2=cv2.resize(np.array(Image.open(os.path.join(root, filelist[1]))),(608,608))
   # img=random_color_distort(img)
+  imglist=np.vstack((img[np.newaxis,:],img2[np.newaxis,:]))
+
+  pyramids,flip_pyramids=makeImgPyramids(imglist,scales=TEST_INPUT_SIZES,flip=True)
+  for pyramid in flip_pyramids:
+    for img in pyramid:
+      plt.imshow(img)
+      plt.show()
+  assert 0
   img,_=random_expand(img)
   plt.imshow(img/img.max())
   plt.show()

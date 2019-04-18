@@ -7,9 +7,8 @@ from yolo.yolo_loss import predict_yolo
 from PIL import Image
 
 class Evaluator:
-  def __init__(self,anchors,inputsize,cateNames,rootpath,score_thres=0.01,iou_thres=0.5,visualize=True):
+  def __init__(self,anchors,cateNames,rootpath,score_thres=0.01,iou_thres=0.5,visualize=True):
     self.anchors=anchors
-    self.inputsize = inputsize
     self.score_thres=score_thres
     self.iou_thres=iou_thres
     self.cateNames = cateNames
@@ -23,7 +22,7 @@ class Evaluator:
   def reset(self):
     pass
 
-  def append(self,grids,imgpath,annpath,padscale,orishape):
+  def append(self,grids,imgpath,annpath,padscale,orishape,inputsize):
     raise NotImplementedError
 
   def build_GT(self):
@@ -35,6 +34,7 @@ class Evaluator:
   def append_visulize(self, imgpath, boxesPre, labelsPre, scoresPre, boxGT, labelGT, savepath=None):
     imPre = np.array(Image.open(imgpath).convert('RGB'))
     imGT = imPre.copy()
+    # imPre = np.fliplr(imPre)
     scoreGT = np.ones(shape=(boxGT.shape[0],))
     visualize_boxes(image=imPre, boxes=boxesPre, labels=labelsPre, probs=scoresPre, class_labels=self.cateNames)
     visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT),
@@ -44,6 +44,7 @@ class Evaluator:
     self.visual_imgs.append(imshow)
     # plt.imshow(imshow)
     # plt.show()
+    # assert 0
     if savepath:
       import os
       plt.imsave(os.path.join(savepath, '{}.png'.format(len(self.visual_imgs))), imshow)

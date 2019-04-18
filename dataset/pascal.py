@@ -107,19 +107,15 @@ if __name__ == '__main__':
   import matplotlib.pyplot as plt
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   subset = [('2007', 'trainval'), ('2012', 'trainval')]
-  batch_size=1
+  batch_size=2
   trainset = VOCdataset('/home/gwl/datasets/VOCdevkit', datatransform, subset, batch_size, shuffle=True)
-  print(len(trainset))
-  assert 0
   train, val = get_dataset('/home/gwl/datasets/VOCdevkit',8)
   for epoch in range(5):
     for idx, inputs in enumerate(val):
       inputs=[tf.squeeze(input,axis=0) for input in inputs]
-      print(inputs[0].shape[1:3])
-      # print(inputs[1].shape)
-      # print(inputs[-1].shape)
-      print(idx)
-      assert 0
+      plt.imshow(inputs[0][0])
+      plt.show()
+      # assert 0
   #     for im in img:
   #       print(im.shape)
   #       plt.imshow(im)

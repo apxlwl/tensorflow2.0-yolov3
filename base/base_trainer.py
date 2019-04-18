@@ -26,7 +26,6 @@ class BaseTrainer:
     self.train_dataloader = None
     self.test_dataloader = None
     self.log_iter = self.args.log_iter
-    self.evaluate = self.args.evaluate
     self.net_size = self.args.net_size
     self.anchors = eval('{}_ANCHOR'.format(self.args.dataset_name.upper()))
     self.labels = eval('{}_LABEL'.format(self.args.dataset_name.upper()))
@@ -71,7 +70,7 @@ class BaseTrainer:
     pass
 
   def _get_SummaryWriter(self):
-    if not self.args.debug and not self.args.evaluate:
+    if not self.args.debug and not self.args.do_test:
       ensure_dir(os.path.join('./summary/', self.experiment_name))
       self.trainwriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
                                                                                           time.strftime(
@@ -100,5 +99,5 @@ class BaseTrainer:
   def _train_epoch(self):
     raise NotImplementedError
 
-  def _valid_epoch(self):
+  def _valid_epoch(self,multiscale=True,flip=True):
     raise NotImplementedError
