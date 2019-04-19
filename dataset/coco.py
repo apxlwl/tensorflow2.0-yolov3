@@ -132,9 +132,15 @@ class COCOdataset(object):
              list_grids[2].astype(np.float32),
 
 
-
-
-
+def cluster(dataset_root,k=9,):
+  datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
+  trainset = COCOdataset(dataset_root, datatransform, subset='train', shuffle=False)
+  for idx in range(len(trainset)):
+    print(trainset.img_ids[idx])
+    ann_info=trainset._load_ann_info(idx)
+    ann = trainset._parse_ann_info(ann_info)
+    print(ann['bboxes'])
+    assert 0
 def get_dataset(dataset_root,batch_size):
   datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
   valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False)
@@ -156,11 +162,11 @@ def get_dataset(dataset_root,batch_size):
 if __name__ == '__main__':
   import json
   import matplotlib.pyplot as plt
-
-  train, val = get_dataset('/home/gwl/datasets/coco2017',8)
-  for i, inputs in enumerate(val):
-    img = inputs[0][0].numpy()
-    print(inputs[0][-2].shape)
-    plt.imshow(img / img.max())
-    plt.show()
-    assert 0
+  cluster('/home/gwl/datasets/coco2017',9)
+  # train, val = get_dataset('/home/gwl/datasets/coco2017',8)
+  # for i, inputs in enumerate(val):
+  #   img = inputs[0][0].numpy()
+  #   print(inputs[0][-2].shape)
+  #   plt.imshow(img / img.max())
+  #   plt.show()
+  #   assert 0

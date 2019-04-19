@@ -13,7 +13,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'voc_scrach'
+args.experiment_name = 'voc_multi'
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'
 args.lr_initial = 1e-4
@@ -22,7 +22,7 @@ args.log_iter = 5000
 args.batch_size = 6
 args.net_size=416
 # args.resume = 'load_darknet'
-args.resume = 145
+args.resume = 103
 args.do_test = True
 
 net = Yolonet(n_classes=20)

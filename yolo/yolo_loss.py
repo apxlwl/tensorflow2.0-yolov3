@@ -29,7 +29,7 @@ def process_output(feature_map, anchors, input_shape, num_classes, training=True
   else:
     return box_centers, box_wh, box_conf, box_prob
 
-
+@tf.function
 def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)

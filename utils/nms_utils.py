@@ -5,7 +5,7 @@ from __future__ import division, print_function
 import numpy as np
 import tensorflow as tf
 
-
+@tf.function
 def gpu_nms(boxes, scores, num_classes, max_boxes=50, score_thresh=0.01, iou_thresh=0.5):
   """
   Perform NMS on GPU using TensorFlow.

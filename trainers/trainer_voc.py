@@ -59,10 +59,13 @@ class Trainer(BaseTrainer):
   def _valid_epoch(self,multiscale=True,flip=True):
     s=time.time()
     for idx_batch, inputs in enumerate(self.test_dataloader):
-      if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
+      # if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
+      #   break
+      if idx_batch==200:
         break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, padscale, ori_shapes, *_)=inputs
+      TEST_INPUT_SIZES=[320,384,448,512]
       pyramids=makeImgPyramids(imgs.numpy(),scales=TEST_INPUT_SIZES,flip=flip)
       img2multi=defaultdict(list)
       for idx,pyramid in enumerate(pyramids):
