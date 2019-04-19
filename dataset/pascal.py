@@ -15,7 +15,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 class VOCdataset:
-  def __init__(self, dataset_root,transform,subset,batchsize,shuffle):
+  def __init__(self, dataset_root,transform,subset,batchsize,shuffle,netsize):
     self.dataset_root = dataset_root
     self.labels = VOC_LABEL
     self.anchors = np.array(VOC_ANCHOR)
@@ -23,6 +23,7 @@ class VOCdataset:
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
     self._ids = []
+    self.netsize=netsize
     self.batch_size=batchsize
     self.shuffle = shuffle
     self.multisizes=TRAIN_INPUT_SIZES
@@ -42,7 +43,7 @@ class VOCdataset:
       if self.shuffle:
         trainsize=random.choice(self.multisizes)
       else:
-        trainsize =608
+        trainsize =self.netsize
       img_batch=[]
       imgpath_batch=[]
       annpath_batch=[]
@@ -83,7 +84,7 @@ class VOCdataset:
 
 
 
-def get_dataset(dataset_root,batch_size):
+def get_dataset(dataset_root,batch_size,net_size):
   subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
   valset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=False)

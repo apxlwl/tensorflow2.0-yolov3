@@ -59,19 +59,23 @@ class Trainer(BaseTrainer):
   def _valid_epoch(self,multiscale=True,flip=True):
     s=time.time()
     for idx_batch, inputs in enumerate(self.test_dataloader):
-      # if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
-      #   break
-      if idx_batch==200:
+      if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, padscale, ori_shapes, *_)=inputs
-      TEST_INPUT_SIZES=[320,384,448,512]
-      pyramids=makeImgPyramids(imgs.numpy(),scales=TEST_INPUT_SIZES,flip=flip)
+      if not multiscale:
+        INPUT_SIZES=[self.net_size]
+      else:
+        INPUT_SIZES=TEST_INPUT_SIZES
+      pyramids=makeImgPyramids(imgs.numpy(),scales=INPUT_SIZES,flip=flip)
+
+      #produce outputFeatures for each scale
       img2multi=defaultdict(list)
       for idx,pyramid in enumerate(pyramids):
         grids = self.model(pyramid, training=False)
         for imgidx in range(imgs.shape[0]):
           img2multi[imgidx].append([grid[imgidx] for grid in grids])
+      #append prediction for each image per scale/flip
       for imgidx,scalegrids in img2multi.items():
         allboxes=[]
         allscores=[]

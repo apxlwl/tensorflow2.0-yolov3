@@ -81,7 +81,9 @@ class BaseTrainer:
   def _get_dataset(self):
     self.train_dataloader, self.test_dataloader = eval('get_{}'.format(self.dataset_name))(
       dataset_root=self.dataset_root,
-      batch_size=self.args.batch_size)
+      batch_size=self.args.batch_size,
+      net_size=self.net_size
+    )
 
   def train(self):
     for epoch in range(self.global_epoch.numpy(), self.args.total_epoch):
