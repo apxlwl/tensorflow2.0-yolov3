@@ -13,14 +13,14 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'voc_multi'
+args.experiment_name = 'voc_multi2'
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'
 args.lr_initial = 1e-4
 args.total_epoch = 150
 args.log_iter = 5000
-args.batch_size = 6
-args.net_size= 608
+args.batch_size = 12
+args.net_size= 512
 args.resume = 'load_darknet'
 # args.resume = 145
 # args.do_test = True
