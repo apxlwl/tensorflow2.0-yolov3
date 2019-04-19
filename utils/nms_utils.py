@@ -5,7 +5,7 @@ from __future__ import division, print_function
 import numpy as np
 import tensorflow as tf
 
-
+@tf.function
 def gpu_nms(boxes, scores, num_classes, max_boxes=50, score_thresh=0.01, iou_thresh=0.5):
   """
   Perform NMS on GPU using TensorFlow.
@@ -46,7 +46,8 @@ def gpu_nms(boxes, scores, num_classes, max_boxes=50, score_thresh=0.01, iou_thr
   boxes = tf.concat(boxes_list, axis=0)
   score = tf.concat(score_list, axis=0)
   label = tf.concat(label_list, axis=0)
-
+  #y1x1y2x2->x1y1x2y2
+  # boxes = tf.stack((boxes[:,1],boxes[:,0],boxes[:,3],boxes[:,2]),axis=1)
   return boxes, score, label
 
 

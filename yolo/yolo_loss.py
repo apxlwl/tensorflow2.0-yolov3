@@ -29,7 +29,7 @@ def process_output(feature_map, anchors, input_shape, num_classes, training=True
   else:
     return box_centers, box_wh, box_conf, box_prob
 
-
+@tf.function
 def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
@@ -57,10 +57,11 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_c
   y_min = center_y - height / 2
   x_max = center_x + width / 2
   y_max = center_y + height / 2
-  allboxes = tf.concat([y_min, x_min, y_max, x_max], axis=-1)
-  nms_boxes, nms_scores, labels = gpu_nms(allboxes, allscores, num_classes)
-  #y1x1y2x2
-  return nms_boxes, nms_scores, labels
+  allboxes = tf.concat([x_min, y_min, x_max, y_max], axis=-1)
+  return allboxes,allscores
+  # nms_boxes, nms_scores, labels = gpu_nms(allboxes, allscores, num_classes)
+  # #y1x1y2x2
+  # return nms_boxes, nms_scores, labels
 
 
 def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):

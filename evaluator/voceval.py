@@ -9,49 +9,37 @@ import os
 from .Evaluator import Evaluator
 
 class EvaluatorVOC(Evaluator):
-  def __init__(self, anchors,inputsize,cateNames,rootpath,score_thres,iou_thres,use_07_metric=False):
+  def __init__(self, anchors,cateNames,rootpath,score_thres,iou_thres,use_07_metric=False):
     self.rec_pred = defaultdict(list)
     self.rec_gt = defaultdict(list)
     self.use_07_metric = use_07_metric
     self._annopath = os.path.join(rootpath, 'VOC2007', 'Annotations', '{}.xml')
     self._imgpath = os.path.join(rootpath, 'VOC2007', 'JPEGImages', '{}.jpg')
     self.reset()
-    super().__init__(anchors, inputsize, cateNames, rootpath, score_thres, iou_thres)
+    super().__init__(anchors, cateNames, rootpath, score_thres, iou_thres)
 
   def reset(self):
     self.coco_imgIds = set([])
     self.visual_imgs = []
     self.rec_pred = defaultdict(list)
 
-  def append(self, grids, imgpath, annpath, padscale, orishape, visualize=True):
-    grids = [grid.numpy() for grid in grids]
-    padscale = padscale.numpy()
-    imgpath = imgpath.numpy()
-    annpath = annpath.numpy()
-    orishape = orishape.numpy()
-    for idx in range(imgpath.shape[0]):
-      _imgpath = imgpath[idx].decode('UTF-8')
-      _annpath = annpath[idx].decode('UTF-8')
-      _grid = [feature[idx] for feature in grids]
-      _padscale = padscale[idx]
-      _orishape = orishape[idx]
-      _boxes, _scores, _labels = predict_yolo(_grid, self.anchors, self.inputsize, _orishape, _padscale, num_classes=20)
-
-      if _boxes is not None:  # do have bboxes
-        _boxes, _scores, _labels = _boxes.numpy(), _scores.numpy(), _labels.numpy()
-        _boxes = np.concatenate((np.expand_dims(_boxes[:, 1], 1), np.expand_dims(_boxes[:, 0], 1),
-                                 np.expand_dims(_boxes[:, 3], 1), np.expand_dims(_boxes[:, 2], 1)), 1)
-        for i in range(_boxes.shape[0]):
-          rec = {
-            "img_idx": _imgpath.split('/')[-1].split('.')[0],
-            "bbox": _boxes[i],
-            "score": float(_scores[i])
-          }
-          self.rec_pred[_labels[i]].append(rec)
-
-        if visualize and len(self.visual_imgs) < self.num_visual:
-          _, boxGT, labelGT, _ = PascalVocXmlParser(str(_annpath), self.cateNames).parse()
-          self.append_visulize(_imgpath, _boxes, _labels, _scores, boxGT, labelGT)
+  def append(self, imgpath,annpath,nms_boxes,nms_scores,nms_labels,visualize=True):
+    imgpath = imgpath.decode('UTF-8')
+    annpath = annpath.decode('UTF-8')
+    if nms_boxes is not None:  # do have bboxes
+      # nms_boxes = np.concatenate((np.expand_dims(nms_boxes[:, 1], 1), np.expand_dims(nms_boxes[:, 0], 1),
+      #                          np.expand_dims(nms_boxes[:, 3], 1), np.expand_dims(nms_boxes[:, 2], 1)), 1)
+        # _boxes = bbox_flip(_boxes, flip_x=True,size=_orishape[::-1])
+      for i in range(nms_boxes.shape[0]):
+        rec = {
+          "img_idx": imgpath.split('/')[-1].split('.')[0],
+          "bbox": nms_boxes[i],
+          "score": float(nms_scores[i])
+        }
+        self.rec_pred[nms_labels[i]].append(rec)
+      if visualize and len(self.visual_imgs) < self.num_visual:
+        _, boxGT, labelGT, _ = PascalVocXmlParser(str(annpath), self.cateNames).parse()
+        self.append_visulize(imgpath, nms_boxes, nms_labels, nms_scores, boxGT, labelGT)
 
   def evaluate(self):
     aps = []
@@ -107,7 +95,6 @@ class EvaluatorVOC(Evaluator):
             overlaps = inters / uni
             ovmax = np.max(overlaps)
             jmax = np.argmax(overlaps)
-
           # TODO add flexible threshold
           if ovmax > 0.5:
             if not _rec_gt['difficult'][jmax]:

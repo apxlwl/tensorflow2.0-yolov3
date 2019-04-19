@@ -15,7 +15,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 class VOCdataset:
-  def __init__(self, dataset_root,transform,subset,batchsize,shuffle):
+  def __init__(self, dataset_root,transform,subset,batchsize,shuffle,netsize):
     self.dataset_root = dataset_root
     self.labels = VOC_LABEL
     self.anchors = np.array(VOC_ANCHOR)
@@ -23,6 +23,7 @@ class VOCdataset:
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
     self._ids = []
+    self.netsize=netsize
     self.batch_size=batchsize
     self.shuffle = shuffle
     self.multisizes=TRAIN_INPUT_SIZES
@@ -42,7 +43,7 @@ class VOCdataset:
       if self.shuffle:
         trainsize=random.choice(self.multisizes)
       else:
-        trainsize =512
+        trainsize =self.netsize
       img_batch=[]
       imgpath_batch=[]
       annpath_batch=[]
@@ -81,7 +82,9 @@ class VOCdataset:
             np.array(grid1_batch).astype(np.float32), \
             np.array(grid2_batch).astype(np.float32), \
 
-def get_dataset(dataset_root,batch_size):
+
+
+def get_dataset(dataset_root,batch_size,net_size):
   subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
   valset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=False)
@@ -107,19 +110,15 @@ if __name__ == '__main__':
   import matplotlib.pyplot as plt
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   subset = [('2007', 'trainval'), ('2012', 'trainval')]
-  batch_size=1
+  batch_size=2
   trainset = VOCdataset('/home/gwl/datasets/VOCdevkit', datatransform, subset, batch_size, shuffle=True)
-  print(len(trainset))
-  assert 0
   train, val = get_dataset('/home/gwl/datasets/VOCdevkit',8)
   for epoch in range(5):
     for idx, inputs in enumerate(val):
       inputs=[tf.squeeze(input,axis=0) for input in inputs]
-      print(inputs[0].shape[1:3])
-      # print(inputs[1].shape)
-      # print(inputs[-1].shape)
-      print(idx)
-      assert 0
+      plt.imshow(inputs[0][0])
+      plt.show()
+      # assert 0
   #     for im in img:
   #       print(im.shape)
   #       plt.imshow(im)
