@@ -135,12 +135,20 @@ class COCOdataset(object):
 def cluster(dataset_root,k=9,):
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
   trainset = COCOdataset(dataset_root, datatransform, subset='train', shuffle=False)
+  img2wh= {}
   for idx in range(len(trainset)):
-    print(trainset.img_ids[idx])
+    img_info=trainset.img_infos[idx]
+    oriH,oriW=img_info['height'],img_info['width']
     ann_info=trainset._load_ann_info(idx)
     ann = trainset._parse_ann_info(ann_info)
-    print(ann['bboxes'])
-    assert 0
+    boxes=ann['bboxes']
+    # w=(boxes[:,2]-boxes[:,0])*608/oriW
+    # h=(boxes[:,3]-boxes[:,1])*608/oriH
+    w=(boxes[:,2]-boxes[:,0])
+    h=(boxes[:,3]-boxes[:,1])
+    img2wh[trainset.img_ids[idx]]=[w.tolist(),h.tolist()]
+  with open('coco_ori.json','w') as f:
+    json.dump(img2wh,f,indent=4)
 def get_dataset(dataset_root,batch_size):
   datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
   valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False)

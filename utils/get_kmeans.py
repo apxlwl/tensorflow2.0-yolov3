@@ -1,134 +1,148 @@
-from __future__ import division, print_function
 import numpy as np
+import json
+import glob
+import xml.etree.ElementTree as ET
+class YOLO_Kmeans:
 
+  def __init__(self, cluster_number, filename):
+    self.cluster_number = cluster_number
+    self.filename = filename
 
-def iou(box, clusters):
-  """
-  Calculates the Intersection over Union (IoU) between a box and k clusters.
-  param:
-      box: tuple or array, shifted to the origin (i. e. width and height)
-      clusters: numpy array of shape (k, 2) where k is the number of clusters
-  return:
-      numpy array of shape (k, 0) where k is the number of clusters
-  """
-  x = np.minimum(clusters[:, 0], box[0])
-  y = np.minimum(clusters[:, 1], box[1])
-  if np.count_nonzero(x == 0) > 0 or np.count_nonzero(y == 0) > 0:
-    raise ValueError("Box has no area")
+  def iou(self, boxes, clusters):  # 1 box -> k clusters
+    n = boxes.shape[0]
+    k = self.cluster_number
 
-  intersection = x * y
-  box_area = box[0] * box[1]
-  cluster_area = clusters[:, 0] * clusters[:, 1]
+    box_area = boxes[:, 0] * boxes[:, 1]
+    box_area = box_area.repeat(k)
+    box_area = np.reshape(box_area, (n, k))
 
-  iou_ = intersection / (box_area + cluster_area - intersection + 1e-10)
+    cluster_area = clusters[:, 0] * clusters[:, 1]
+    cluster_area = np.tile(cluster_area, [1, n])
+    cluster_area = np.reshape(cluster_area, (n, k))
 
-  return iou_
+    box_w_matrix = np.reshape(boxes[:, 0].repeat(k), (n, k))
+    cluster_w_matrix = np.reshape(np.tile(clusters[:, 0], (1, n)), (n, k))
+    min_w_matrix = np.minimum(cluster_w_matrix, box_w_matrix)
 
+    box_h_matrix = np.reshape(boxes[:, 1].repeat(k), (n, k))
+    cluster_h_matrix = np.reshape(np.tile(clusters[:, 1], (1, n)), (n, k))
+    min_h_matrix = np.minimum(cluster_h_matrix, box_h_matrix)
+    inter_area = np.multiply(min_w_matrix, min_h_matrix)
 
-def avg_iou(boxes, clusters):
-  """
-  Calculates the average Intersection over Union (IoU) between a numpy array of boxes and k clusters.
-  param:
-      boxes: numpy array of shape (r, 2), where r is the number of rows
-      clusters: numpy array of shape (k, 2) where k is the number of clusters
-  return:
-      average IoU as a single float
-  """
-  return np.mean([np.max(iou(boxes[i], clusters)) for i in range(boxes.shape[0])])
+    result = inter_area / (box_area + cluster_area - inter_area)
+    return result
 
+  def avg_iou(self, boxes, clusters):
+    accuracy = np.mean([np.max(self.iou(boxes, clusters), axis=1)])
+    return accuracy
 
-def translate_boxes(boxes):
-  """
-  Translates all the boxes to the origin.
-  param:
-      boxes: numpy array of shape (r, 4)
-  return:
-  numpy array of shape (r, 2)
-  """
-  new_boxes = boxes.copy()
-  for row in range(new_boxes.shape[0]):
-    new_boxes[row][2] = np.abs(new_boxes[row][2] - new_boxes[row][0])
-    new_boxes[row][3] = np.abs(new_boxes[row][3] - new_boxes[row][1])
-  return np.delete(new_boxes, [0, 1], axis=1)
+  def kmeans(self, boxes, k, dist=np.median):
+    box_number = boxes.shape[0]
+    distances = np.empty((box_number, k))
+    last_nearest = np.zeros((box_number,))
+    np.random.seed()
+    clusters = boxes[np.random.choice(box_number, k, replace=False)]  # init k clusters
+    while True:
+      distances = 1 - self.iou(boxes, clusters)
 
+      current_nearest = np.argmin(distances, axis=1)
+      if (last_nearest == current_nearest).all():
+        break  # clusters won't change
+      for cluster in range(k):
+        clusters[cluster] = dist(boxes[current_nearest == cluster], axis=0)
 
-def kmeans(boxes, k, dist=np.median):
-  """
-  Calculates k-means clustering with the Intersection over Union (IoU) metric.
-  param:
-      boxes: numpy array of shape (r, 2), where r is the number of rows
-      k: number of clusters
-      dist: distance function
-  return:
-      numpy array of shape (k, 2)
-  """
-  rows = boxes.shape[0]
+      last_nearest = current_nearest
 
-  distances = np.empty((rows, k))
-  last_clusters = np.zeros((rows,))
+    return clusters
 
-  np.random.seed()
+  def result2txt(self, data):
+    f = open("yolo_anchors.txt", 'w')
+    row = np.shape(data)[0]
+    for i in range(row):
+      if i == 0:
+        x_y = "%d,%d" % (data[i][0], data[i][1])
+      else:
+        x_y = ", %d,%d" % (data[i][0], data[i][1])
+      f.write(x_y)
+    f.close()
 
-  # the Forgy method will fail if the whole array contains the same rows
-  clusters = boxes[np.random.choice(rows, k, replace=False)]
+  def txt2boxes(self):
+    f = open(self.filename, 'r')
+    dataSet = []
+    for line in f:
+      infos = line.split(" ")
+      length = len(infos)
+      for i in range(1, length):
+        width = int(infos[i].split(",")[2]) - \
+                int(infos[i].split(",")[0])
+        height = int(infos[i].split(",")[3]) - \
+                 int(infos[i].split(",")[1])
+        dataSet.append([width, height])
+    result = np.array(dataSet)
+    f.close()
+    return result
+  def xml2boxes(self):
+    self.filename=["/home/gwl/datasets/VOCdevkit/VOC2012/Annotations",
+                   "/home/gwl/datasets/VOCdevkit/VOC2007/Annotations"]
+    dataset = []
+    for dir in self.filename:
+      for xml_file in glob.glob("{}/*xml".format(dir)):
+        tree = ET.parse(xml_file)
 
-  while True:
-    for row in range(rows):
-      distances[row] = 1 - iou(boxes[row], clusters)
+        height = int(tree.findtext("./size/height"))
+        width = int(tree.findtext("./size/width"))
+        for obj in tree.iter("object"):
+          xmin = float(obj.findtext("bndbox/xmin")) / width*512
+          ymin = float(obj.findtext("bndbox/ymin")) / height*512
+          xmax = float(obj.findtext("bndbox/xmax")) / width*512
+          ymax = float(obj.findtext("bndbox/ymax")) / height*512
+          dataset.append([xmax - xmin, ymax - ymin])
+    return np.array(dataset)
 
-    nearest_clusters = np.argmin(distances, axis=1)
+  def json2boxes(self):
+    img2wh=json.load(open(self.filename,'r'))
+    boxes=[]
+    for k,v in img2wh.items():
+      wlist=v[0]
+      hlist=v[1]
+      for w,h in zip(wlist,hlist):
+        boxes.append([w,h])
+    result=np.array(boxes)
+    return result
+  def json2clusters(self):
+    all_boxes = self.json2boxes()
+    import time
+    s=time.time()
+    result = self.kmeans(all_boxes, k=self.cluster_number)
+    result = result[np.lexsort(result.T[0, None])]
+    self.result2txt(result)
+    print("K anchors:\n {}".format(result))
+    print("Accuracy: {:.2f}%".format(
+      self.avg_iou(all_boxes, result) * 100))
+    print(time.time()-s)
+  def txt2clusters(self):
+    all_boxes = self.txt2boxes()
+    result = self.kmeans(all_boxes, k=self.cluster_number)
+    result = result[np.lexsort(result.T[0, None])]
+    self.result2txt(result)
+    print("K anchors:\n {}".format(result))
+    print("Accuracy: {:.2f}%".format(
+      self.avg_iou(all_boxes, result) * 100))
+  def xml2clusters(self):
+    all_boxes = self.xml2boxes()
+    result = self.kmeans(all_boxes, k=self.cluster_number)
+    result = result[np.lexsort(result.T[0, None])]
+    self.result2txt(result)
+    print("K anchors:\n {}".format(result))
+    print("Accuracy: {:.2f}%".format(
+      self.avg_iou(all_boxes, result) * 100))
 
-    if (last_clusters == nearest_clusters).all():
-      break
-
-    for cluster in range(k):
-      clusters[cluster] = dist(boxes[nearest_clusters == cluster], axis=0)
-
-    last_clusters = nearest_clusters
-
-  return clusters
-
-
-def parse_anno(annotation_path):
-  anno = open(annotation_path, 'r')
-  result = []
-  for line in anno:
-    s = line.strip().split(' ')
-    s = s[1:]
-    box_cnt = len(s) // 5
-    for i in range(box_cnt):
-      x_min, y_min, x_max, y_max = float(s[i * 5 + 1]), float(s[i * 5 + 2]), float(s[i * 5 + 3]), float(s[i * 5 + 4])
-      width = x_max - x_min
-      height = y_max - y_min
-      assert width > 0
-      assert height > 0
-      result.append([width, height])
-  result = np.asarray(result)
-  return result
-
-
-def get_kmeans(anno, cluster_num=9):
-  anchors = kmeans(anno, cluster_num)
-  ave_iou = avg_iou(anno, anchors)
-
-  anchors = anchors.astype('int').tolist()
-
-  anchors = sorted(anchors, key=lambda x: x[0] * x[1])
-
-  return anchors, ave_iou
-
-
-if __name__ == '__main__':
-  annotation_path = "./data/my_data/train.txt"
-  anno_result = parse_anno(annotation_path)
-  anchors, ave_iou = get_kmeans(anno_result, 9)
-
-  anchor_string = ''
-  for anchor in anchors:
-    anchor_string += '{},{}, '.format(anchor[0], anchor[1])
-  anchor_string = anchor_string[:-2]
-
-  print('anchors are:')
-  print(anchor_string)
-  print('the average iou is:')
-  print(ave_iou)
+if __name__ == "__main__":
+  cluster_number = 9
+  # filename = "2012_train.txt"
+  # filename = "/home/gwl/PycharmProjects/mine/tf2-yolo3/dataset/coco_info.json"
+  filename="/home/gwl/datasets/VOCdevkit/VOC2012/Annotations"
+  kmeans = YOLO_Kmeans(cluster_number, filename)
+  kmeans.xml2clusters()
+  # kmeans.json2clusters()
+  # kmeans.txt2clusters()

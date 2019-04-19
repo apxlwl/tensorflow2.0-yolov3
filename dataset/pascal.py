@@ -81,6 +81,8 @@ class VOCdataset:
             np.array(grid1_batch).astype(np.float32), \
             np.array(grid2_batch).astype(np.float32), \
 
+
+
 def get_dataset(dataset_root,batch_size):
   subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
