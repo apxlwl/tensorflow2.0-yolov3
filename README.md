@@ -9,7 +9,7 @@ A Tensorflow2.0 implementation of YOLOv3
 3. Modify the dataset root and weights root in the config file ("./configs/coco.json")
 4. Do evaluation (the result is in "./results/darknet_416.txt"):
 ```
-python main.py --resume load_yolov3 --do_test
+python main.py --experiment_name xxx --dataset_name COCO --resume load_yolov3 --do_test --net_size 608 --batch_size 8 
 ```
 
 ## Training
@@ -23,10 +23,20 @@ python main.py --experiment_name dummy_name
 
 3. The summary file is stored in the  ./summary/dummy_name and origanized like [TF-ObjectDection-API](https://github.com/tensorflow/models/tree/master/research/object_detection)
 
+## Performance 
+| Model | Initial weight | basic resolution |VOC2007 Test(mAP) |
+| ------ | ------ | ------ | ------ |
+| YoloV3 | Darknet53 | 512|0.7796 |
 
-
+## Suppported Attributes
+- [x] Data agumentation  
+- [x] Multi-scale Training 
+- [x] Multi-scale Testing(includingg flip)
+- [ ] Focal loss  
+- [ ] ....
 ## TODO
-- [ ] Update performance
+- [x] Update VOC performance
+- [ ] Update COCO performance
 - [ ] Support distribute training
 - [ ] Support Custom dataset  
 

@@ -5,7 +5,7 @@ import numpy as np
 from dataset.pycocotools.coco import COCO
 from dataset.augment import transform
 import tensorflow as tf
-from config import COCO_ANCHOR,TRAIN_INPUT_SIZES
+from config import COCO_ANCHOR_608,COCO_ANCHOR_416,TRAIN_INPUT_SIZES_COCO
 import random
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -16,7 +16,7 @@ class COCOdataset(object):
     self.dataset_root = dataset_root
     self.image_dir = "{}/images/{}2017".format(dataset_root, subset)
     self.coco = COCO("{}/annotations/instances_{}2017.json".format(dataset_root, subset))
-    self.anchors = np.array(COCO_ANCHOR)
+    self.anchors = np.array(eval("COCO_ANCHOR_{}".format(netsize)))
     self.shuffle=shuffle
     self.netsize = netsize
     self.batch_size = batchsize
@@ -28,7 +28,7 @@ class COCOdataset(object):
     }
     self.img_ids, self.img_infos = self._filter_imgs()
     self._transform=transform
-    self.multisizes = TRAIN_INPUT_SIZES
+    self.multisizes = TRAIN_INPUT_SIZES_COCO
   def _filter_imgs(self, min_size=32):
     # Filter images without ground truths.
     all_img_ids = list(set([_['image_id'] for _ in self.coco.anns.values()]))
@@ -151,7 +151,7 @@ def get_dataset(dataset_root,batch_size,net_size):
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   trainset = COCOdataset(dataset_root,datatransform,subset='train',shuffle=True,batchsize=batch_size,netsize=net_size)
   trainset = tf.data.Dataset.from_generator(trainset,
-                                            ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
+                                            ((tf.float32, tf.string,tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
   #be careful to drop the last smaller batch if using tf.function
   trainset = trainset.batch(1,drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
@@ -160,12 +160,5 @@ def get_dataset(dataset_root,batch_size,net_size):
 
 
 if __name__ == '__main__':
-  pass
-  # cluster('/home/gwl/datasets/coco2017',9)
-  # train, val = get_dataset('/home/gwl/datasets/coco2017',8)
-  # for i, inputs in enumerate(val):
-  #   img = inputs[0][0].numpy()
-  #   print(inputs[0][-2].shape)
-  #   plt.imshow(img / img.max())
-  #   plt.show()
-  #   assert 0
+  train, val = get_dataset('/home/gwl/datasets/coco2017',8,416)
+  assert 0

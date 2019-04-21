@@ -3,8 +3,8 @@ class Options():
   def __init__(self):
     parser = argparse.ArgumentParser(description='TRAIN yoloV3',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--experiment_name',required=True)
-    parser.add_argument('--dataset_name', default='COCO',required=True)
+    parser.add_argument('--experiment_name')
+    parser.add_argument('--dataset_name', default='VOC')
     parser.add_argument('--dataset_root',type=str)
     parser.add_argument('--pretrained_model',type=str,default='/home/gwl/PycharmProjects/mine/tf2-yolo3/checkpoints/darknet_coco')
     parser.add_argument('--gpu', default='0')

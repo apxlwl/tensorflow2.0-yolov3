@@ -4,7 +4,7 @@ from tensorflow import summary
 from dataset import get_COCO, get_VOC
 import os
 import time
-from config import COCO_ANCHOR, COCO_LABEL, VOC_ANCHOR, VOC_LABEL,TEST_INPUT_SIZES
+from config import *
 from tensorflow.python.keras import metrics
 from dataset import makeImgPyramids
 from yolo import predict_yolo,loss_yolo
@@ -32,7 +32,7 @@ class BaseTrainer:
     self.test_dataloader = None
     self.log_iter = self.args.log_iter
     self.net_size = self.args.net_size
-    self.anchors = eval('{}_ANCHOR'.format(self.args.dataset_name.upper()))
+    self.anchors = eval('{}_ANCHOR_{}'.format(self.args.dataset_name.upper(),self.net_size))
     self.labels = eval('{}_LABEL'.format(self.args.dataset_name.upper()))
     self.num_classes = len(self.labels)
 
@@ -56,7 +56,7 @@ class BaseTrainer:
   def _get_checkpoint(self):
     self.ckpt = tf.train.Checkpoint(step=self.global_iter, epoch=self.global_epoch, optimizer=self.optimizer,
                                     net=self.model)
-    self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, self.save_path, max_to_keep=10)
+    self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, self.save_path, max_to_keep=5)
     if self.args.resume:
       self._load_checkpoint()
 
@@ -105,13 +105,11 @@ class BaseTrainer:
       self.global_epoch.assign_add(1)
       self._train_epoch()
       results, imgs = self._valid_epoch(multiscale=False, flip=False)
-
       with self.summarywriter.as_default():
         current_lr = self.optimizer._get_hyper('learning_rate')(self.optimizer._iterations)
         tf.summary.scalar("learning_rate", current_lr, step=self.global_iter.numpy())
         for k, v in zip(self.logger_custom, results):
           tf.summary.scalar(k, v, step=self.global_iter.numpy())
-          print("{}:{}".format(k,v))
         for k, v in self.logger_losses.items():
           tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
         for i in range(len(imgs)):
@@ -162,7 +160,7 @@ class BaseTrainer:
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       img, _, _, _, _, *labels = inputs
       self.global_iter.assign_add(1)
-      if self.global_iter.numpy() % 10 == 0:
+      if self.global_iter.numpy() % 200 == 0:
         tf.print(self.global_iter.numpy())
         for k, v in self.logger_losses.items():
           tf.print(k, ":", v.result().numpy())
@@ -172,12 +170,15 @@ class BaseTrainer:
     for idx_batch, inputs in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
+
+      if idx_batch==50:
+        break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, padscale, ori_shapes, *_) = inputs
       if not multiscale:
         INPUT_SIZES = [self.net_size]
       else:
-        INPUT_SIZES = TEST_INPUT_SIZES
+        INPUT_SIZES = [self.net_size-32,self.net_size,self.net_size+32]
       pyramids = makeImgPyramids(imgs.numpy(), scales=INPUT_SIZES, flip=flip)
 
       # produce outputFeatures for each scale
@@ -191,7 +192,7 @@ class BaseTrainer:
       for imgidx, scalegrids in img2multi.items():
         allboxes = []
         allscores = []
-        for _grids, _scale in zip(scalegrids[:len(INPUT_SIZES)], TEST_INPUT_SIZES):
+        for _grids, _scale in zip(scalegrids[:len(INPUT_SIZES)], INPUT_SIZES):
           _boxes, _scores = predict_yolo(_grids, self.anchors, (_scale, _scale), ori_shapes[imgidx],
                                          padscale=padscale[imgidx], num_classes=self.num_classes)
           allboxes.append(_boxes)
@@ -214,4 +215,6 @@ class BaseTrainer:
                                   nms_labels.numpy())
     results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
+    for k, v in zip(self.logger_custom, results):
+      print("{}:{}".format(k, v))
     return results, imgs

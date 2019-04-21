@@ -4,7 +4,7 @@ import cv2
 from dataset.augment import transform
 import tensorflow as tf
 import os
-from config import VOC_LABEL,VOC_ANCHOR,TRAIN_INPUT_SIZES
+from config import VOC_LABEL,VOC_ANCHOR_512,TRAIN_INPUT_SIZES_VOC
 import random
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -15,7 +15,7 @@ class VOCdataset:
   def __init__(self, dataset_root,transform,subset,batchsize,netsize,shuffle):
     self.dataset_root = dataset_root
     self.labels = VOC_LABEL
-    self.anchors = np.array(VOC_ANCHOR)
+    self.anchors = np.array(eval("VOC_ANCHOR_{}".format(netsize)))
     self._transform = transform
     self._annopath = os.path.join('{}', 'Annotations', '{}.xml')
     self._imgpath = os.path.join('{}', 'JPEGImages', '{}.jpg')
@@ -23,7 +23,7 @@ class VOCdataset:
     self.netsize=netsize
     self.batch_size=batchsize
     self.shuffle = shuffle
-    self.multisizes=TRAIN_INPUT_SIZES
+    self.multisizes=TRAIN_INPUT_SIZES_VOC
     for year, set in subset:
       rootpath = os.path.join(dataset_root, 'VOC' + year)
       for line in open(os.path.join(rootpath, 'ImageSets', 'Main', '{}.txt'.format(set))):

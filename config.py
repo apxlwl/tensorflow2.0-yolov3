@@ -1,4 +1,4 @@
-COCO_ANCHOR = [
+COCO_ANCHOR_608 = [
   [10, 13],
   [16, 30],
   [33, 23],
@@ -8,6 +8,18 @@ COCO_ANCHOR = [
   [116, 90],
   [156, 198],
   [373, 326]
+]
+#Anchor size of 416
+COCO_ANCHOR_416 = [
+  [7, 9],
+  [11, 21],
+  [22, 16],
+  [20, 41],
+  [42, 30],
+  [40, 81],
+  [79, 61],
+  [106, 135],
+  [255, 223]
 ]
 
 COCO_LABEL = [
@@ -94,7 +106,7 @@ COCO_LABEL = [
 ]
 
 #VOC_ANCHOR under 512 resolution
-VOC_ANCHOR = [
+VOC_ANCHOR_512 = [
   [19, 35],
   [33, 95],
   [59, 53],
@@ -129,5 +141,5 @@ VOC_LABEL = [
   "tvmonitor"
 ]
 
-TRAIN_INPUT_SIZES = [320, 352, 384, 416, 448, 480, 512]
-TEST_INPUT_SIZES=[512]
+TRAIN_INPUT_SIZES_COCO = [320, 352, 384, 416, 448]
+TRAIN_INPUT_SIZES_VOC = [320, 352, 384, 416, 448, 480, 512]
