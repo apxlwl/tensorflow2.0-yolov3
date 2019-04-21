@@ -5,18 +5,21 @@ import numpy as np
 from dataset.pycocotools.coco import COCO
 from dataset import transform
 import tensorflow as tf
-from base import COCO_LABEL,COCO_ANCHOR
+from base import COCO_LABEL,COCO_ANCHOR,TRAIN_INPUT_SIZES
+import random
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class COCOdataset(object):
-  def __init__(self, dataset_root,transform,subset,shuffle):
+  def __init__(self, dataset_root,transform,subset,batchsize,netsize,shuffle):
     self.dataset_root = dataset_root
     self.image_dir = "{}/images/{}2017".format(dataset_root, subset)
     self.coco = COCO("{}/annotations/instances_{}2017.json".format(dataset_root, subset))
     self.anchors = np.array(COCO_ANCHOR)
     self.shuffle=shuffle
+    self.netsize = netsize
+    self.batch_size = batchsize
     # get the mapping from original category ids to labels
     self.cat_ids = self.coco.getCatIds()
     self.cat2label = {
@@ -25,13 +28,8 @@ class COCOdataset(object):
     }
     self.img_ids, self.img_infos = self._filter_imgs()
     self._transform=transform
+    self.multisizes = TRAIN_INPUT_SIZES
   def _filter_imgs(self, min_size=32):
-    '''Filter images too small or without ground truths.
-
-    Args
-    ---
-        min_size: the minimal size of the image.
-    '''
     # Filter images without ground truths.
     all_img_ids = list(set([_['image_id'] for _ in self.coco.anns.values()]))
     # Filter images too small.
@@ -54,17 +52,6 @@ class COCOdataset(object):
     return ann_info
 
   def _parse_ann_info(self, ann_info):
-    '''Parse bbox annotation.
-
-    Args
-    ---
-        ann_info (list[dict]): Annotation info of an image.
-
-    Returns
-    ---
-        dict: A dict containing the following keys: bboxes,
-            bboxes_ignore, labels.
-    '''
     gt_bboxes = []
     gt_labels = []
     gt_bboxes_ignore = []
@@ -99,15 +86,31 @@ class COCOdataset(object):
     return ann
 
   def __len__(self):
-    return len(self.img_infos)
-
+    return len(self.img_infos)//self.batch_size
   def __call__(self):
     indices = np.arange(len(self.img_infos))
     if self.shuffle:
       np.random.shuffle(indices)
-    for idx in indices:
-      img_info = self.img_infos[idx]
-      ann_info = self._load_ann_info(idx)
+    for idx_batch in range(self.__len__()):
+      if self.shuffle:
+        trainsize=random.choice(self.multisizes)
+      else:
+        trainsize =self.netsize
+
+      yield self._load_batch(idx_batch,trainsize)
+
+  def _load_batch(self,idx_batch,random_trainsize):
+    img_batch = []
+    imgpath_batch = []
+    annpath_batch = []
+    pad_scale_batch = []
+    ori_shape_batch = []
+    grid0_batch = []
+    grid1_batch = []
+    grid2_batch = []
+    for idx in range(self.batch_size):
+      img_info = self.img_infos[idx_batch*self.batch_size+idx]
+      ann_info = self._load_ann_info(idx_batch*self.batch_size+idx)
       # load the image.
       img = cv2.imread(osp.join(self.image_dir, img_info['file_name']), cv2.IMREAD_COLOR)
       img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -115,54 +118,43 @@ class COCOdataset(object):
 
       # Load the annotation.
       ann = self._parse_ann_info(ann_info)
-      bboxes = ann['bboxes'] #[x1,y1,x2,y2]
+      bboxes = ann['bboxes']  # [x1,y1,x2,y2]
       labels = ann['labels']
-      img,bboxes=self._transform(416,416,img,bboxes)
-
+      img, bboxes = self._transform(random_trainsize, random_trainsize, img, bboxes)
       list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=80, anchors=self.anchors)
+      pad_scale = (1, 1)
+      img_batch.append(img)
+      imgpath_batch.append(osp.join(self.image_dir, img_info['file_name']))
+      annpath_batch.append(osp.join(self.image_dir, img_info['file_name']))
+      ori_shape_batch.append(ori_shape)
+      pad_scale_batch.append(pad_scale)
+      grid0_batch.append(list_grids[0])
+      grid1_batch.append(list_grids[1])
+      grid2_batch.append(list_grids[2])
+    return np.array(img_batch).astype(np.float32), \
+            imgpath_batch, \
+            annpath_batch, \
+            np.array(pad_scale_batch).astype(np.float32), \
+            np.array(ori_shape_batch).astype(np.float32), \
+            np.array(grid0_batch).astype(np.float32), \
+            np.array(grid1_batch).astype(np.float32), \
+            np.array(grid2_batch).astype(np.float32)
 
-      pad_scale=(1,1)
-      yield img.astype(np.float32), \
-             osp.join(self.image_dir, img_info['file_name']), \
-             osp.join(self.image_dir, img_info['file_name']), \
-             np.array(pad_scale).astype(np.float32), \
-             np.array(ori_shape).astype(np.float32), \
-             list_grids[0].astype(np.float32), \
-             list_grids[1].astype(np.float32), \
-             list_grids[2].astype(np.float32),
-
-
-def cluster(dataset_root,k=9,):
-  datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
-  trainset = COCOdataset(dataset_root, datatransform, subset='train', shuffle=False)
-  img2wh= {}
-  for idx in range(len(trainset)):
-    img_info=trainset.img_infos[idx]
-    oriH,oriW=img_info['height'],img_info['width']
-    ann_info=trainset._load_ann_info(idx)
-    ann = trainset._parse_ann_info(ann_info)
-    boxes=ann['bboxes']
-    # w=(boxes[:,2]-boxes[:,0])*608/oriW
-    # h=(boxes[:,3]-boxes[:,1])*608/oriH
-    w=(boxes[:,2]-boxes[:,0])
-    h=(boxes[:,3]-boxes[:,1])
-    img2wh[trainset.img_ids[idx]]=[w.tolist(),h.tolist()]
-  with open('coco_ori.json','w') as f:
-    json.dump(img2wh,f,indent=4)
-def get_dataset(dataset_root,batch_size):
+def get_dataset(dataset_root,batch_size,net_size):
   datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
-  valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False)
+  valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False,batchsize=batch_size,netsize=net_size)
   valset = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
-  valset = valset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+  valset = valset.batch(1).prefetch(tf.data.experimental.AUTOTUNE)
+
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0,0,0),std=(1,1,1))
-  trainset = COCOdataset(dataset_root,datatransform,subset='train',shuffle=True)
+  trainset = COCOdataset(dataset_root,datatransform,subset='train',shuffle=True,batchsize=batch_size,netsize=net_size)
   trainset = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                               tf.float32)))
   #be careful to drop the last smaller batch if using tf.function
-  trainset = trainset.batch(batch_size,drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
+  trainset = trainset.batch(1,drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return trainset, valset
 
@@ -170,7 +162,7 @@ def get_dataset(dataset_root,batch_size):
 if __name__ == '__main__':
   import json
   import matplotlib.pyplot as plt
-  cluster('/home/gwl/datasets/coco2017',9)
+  # cluster('/home/gwl/datasets/coco2017',9)
   # train, val = get_dataset('/home/gwl/datasets/coco2017',8)
   # for i, inputs in enumerate(val):
   #   img = inputs[0][0].numpy()

@@ -12,7 +12,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 opt = Options()
 args = opt.opt
-args.experiment_name = 'voc_multi2'
+args.experiment_name = 'test'
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu 
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'
@@ -21,11 +21,11 @@ args.total_epoch = 250
 args.log_iter = 5000
 args.batch_size = 12
 args.net_size= 480
-args.fliptest=True
-args.multitest=True
-# args.resume = 'load_darknet'
-args.resume = 181
-args.do_test = True
+args.fliptest=False
+args.multitest=False
+args.resume = 'load_darknet'
+# args.resume = 182
+# args.do_test = True
 lensVOC=16551
 net = Yolonet(n_classes=20)
 

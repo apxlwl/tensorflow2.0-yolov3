@@ -1,79 +1,36 @@
 from base.base_trainer import BaseTrainer
 import tensorflow as tf
 from evaluator.cocoeval import EvaluatorCOCO
-from tensorflow.python.keras import metrics
-from yolo.yolo_loss import loss_yolo
-
 
 class Trainer(BaseTrainer):
   def __init__(self, args, model, optimizer):
     super().__init__(args, model, optimizer)
 
   def _get_loggers(self):
+    #get public loggers
+    super()._get_loggers()
     self.TESTevaluator = EvaluatorCOCO(anchors=self.anchors,
-                                       inputsize=(self.net_size,
-                                                  self.net_size),
                                        cateNames=self.labels,
                                        rootpath=self.dataset_root,
                                        score_thres=0.01,
                                        iou_thres=0.5,
                                        )
 
-    self.LossBox = metrics.Mean()
-    self.LossConf = metrics.Mean()
-    self.LossClass = metrics.Mean()
-    self.logger_losses = {}
-    self.logger_losses.update({"lossBox": self.LossBox})
-    self.logger_losses.update({"lossConf": self.LossConf})
-    self.logger_losses.update({"lossClass": self.LossClass})
     self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
                         'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
-  def _reset_loggers(self):
-    self.TESTevaluator.reset()
-    self.LossClass.reset_states()
-    self.LossConf.reset_states()
-    self.LossBox.reset_states()
 
-  @tf.function
-  def train_step(self, imgs, labels):
-    with tf.GradientTape() as tape:
-      outputs = self.model(imgs, training=True)
-      loss_box, loss_conf, loss_class = loss_yolo(outputs, labels, anchors=self.anchors,
-                                                  inputshape=(self.net_size, self.net_size),
-                                                  num_classes=self.num_classes)
-      loss = tf.reduce_sum(loss_box + loss_conf + loss_class)
-    grads = tape.gradient(loss, self.model.trainable_variables)
-    self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-    self.LossBox.update_state(loss_box)
-    self.LossConf.update_state(loss_conf)
-    self.LossClass.update_state(loss_class)
-    return outputs
 
-  def _valid_epoch(self):
-    print("validation start")
-    for idx_batch, (imgs, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.test_dataloader):
-      if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
-        break
-      if idx_batch%50==0:
-          print("{}/5000 done".format(idx_batch*12))
-      grids = self.model(imgs, training=False)
-      self.TESTevaluator.append(grids, imgpath,annpath, scale, ori_shapes)
-    result = self.TESTevaluator.evaluate()
-    imgs = self.TESTevaluator.visual_imgs
-    for k, v in zip(self.logger_coco, result):
-      print("metric {}:{}".format(k, v))
-    return result, imgs
+  def _valid_epoch(self,multiscale=False,flip=False):
+    results, imgs = super()._valid_epoch(multiscale=multiscale,flip=flip)
+    return results, imgs
 
   def _train_epoch(self):
     with self.trainwriter.as_default():
       for i, (img, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
         self.global_iter.assign_add(1)
-        if self.global_iter.numpy() % 100 == 0:
-          print(self.global_iter.numpy())
-          for k, v in self.logger_losses.items():
-            print(k, ":", v.result().numpy())
 
-        _ = self.train_step(img, labels)
+        self.train_step(img, labels)
+
         if self.global_iter.numpy() % self.log_iter == 0:
           for k, v in self.logger_losses.items():
             tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())

@@ -7,14 +7,13 @@ from yolo.yolo_loss import predict_yolo
 from PIL import Image
 
 class Evaluator:
-  def __init__(self,anchors,cateNames,rootpath,score_thres=0.01,iou_thres=0.5,visualize=True):
+  def __init__(self,anchors,cateNames,rootpath,score_thres=0.01,iou_thres=0.5):
     self.anchors=anchors
     self.score_thres=score_thres
     self.iou_thres=iou_thres
     self.cateNames = cateNames
     self.dataset_root=rootpath
 
-    self.visual = visualize
     self.visual_imgs = []
     #show 10 images in tensorboard by default
     self.num_visual=10
@@ -34,8 +33,8 @@ class Evaluator:
   def append_visulize(self, imgpath, boxesPre, labelsPre, scoresPre, boxGT, labelGT, savepath=None):
     imPre = np.array(Image.open(imgpath).convert('RGB'))
     imGT = imPre.copy()
-    # imPre = np.fliplr(imPre)
-    scoreGT = np.ones(shape=(boxGT.shape[0],))
+
+    scoreGT = np.ones(shape=(labelGT.shape[0],))
     visualize_boxes(image=imPre, boxes=boxesPre, labels=labelsPre, probs=scoresPre, class_labels=self.cateNames)
     visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT),
                     class_labels=self.cateNames)

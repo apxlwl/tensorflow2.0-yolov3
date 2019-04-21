@@ -27,9 +27,6 @@ class EvaluatorVOC(Evaluator):
     imgpath = imgpath.decode('UTF-8')
     annpath = annpath.decode('UTF-8')
     if nms_boxes is not None:  # do have bboxes
-      # nms_boxes = np.concatenate((np.expand_dims(nms_boxes[:, 1], 1), np.expand_dims(nms_boxes[:, 0], 1),
-      #                          np.expand_dims(nms_boxes[:, 3], 1), np.expand_dims(nms_boxes[:, 2], 1)), 1)
-        # _boxes = bbox_flip(_boxes, flip_x=True,size=_orishape[::-1])
       for i in range(nms_boxes.shape[0]):
         rec = {
           "img_idx": imgpath.split('/')[-1].split('.')[0],

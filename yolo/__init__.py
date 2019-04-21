@@ -1,1 +1,1 @@
-from .yolo_loss import predict_yolo
+from .yolo_loss import predict_yolo,loss_yolo

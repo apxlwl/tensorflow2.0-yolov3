@@ -35,6 +35,35 @@ class VOCdataset:
   def __len__(self):
     return len(self._ids)//self.batch_size
 
+  def _load_batch(self,idx_batch,random_trainsize):
+    img_batch = []
+    imgpath_batch = []
+    annpath_batch = []
+    pad_scale_batch = []
+    ori_shape_batch = []
+    grid0_batch = []
+    grid1_batch = []
+    grid2_batch = []
+    for idx in range(self.batch_size):
+      rootpath, filename = self._ids[idx_batch * self.batch_size + idx]
+      annpath = self._annopath.format(rootpath, filename)
+      imgpath = self._imgpath.format(rootpath, filename)
+      fname, bboxes, labels, _ = PascalVocXmlParser(annpath, self.labels).parse()
+      img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
+      img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+      ori_shape = img.shape[:2]
+      # Load the annotation.
+      img, bboxes = self._transform(random_trainsize, random_trainsize, img, bboxes)
+      list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=len(self.labels), anchors=self.anchors)
+      pad_scale = (1, 1)
+      img_batch.append(img)
+      imgpath_batch.append(imgpath)
+      annpath_batch.append(annpath)
+      ori_shape_batch.append(ori_shape)
+      pad_scale_batch.append(pad_scale)
+      grid0_batch.append(list_grids[0])
+      grid1_batch.append(list_grids[1])
+      grid2_batch.append(list_grids[2])
   def __call__(self):
     indices = np.arange(len(self._ids))
     if self.shuffle:
@@ -44,43 +73,7 @@ class VOCdataset:
         trainsize=random.choice(self.multisizes)
       else:
         trainsize =self.netsize
-      img_batch=[]
-      imgpath_batch=[]
-      annpath_batch=[]
-      pad_scale_batch=[]
-      ori_shape_batch=[]
-      grid0_batch=[]
-      grid1_batch=[]
-      grid2_batch=[]
-      for idx in range(self.batch_size):
-        rootpath, filename = self._ids[idx_batch*self.batch_size+idx]
-        annpath = self._annopath.format(rootpath, filename)
-        imgpath = self._imgpath.format(rootpath, filename)
-        fname, bboxes, labels,_ = PascalVocXmlParser(annpath, self.labels).parse()
-        img = cv2.imread(imgpath, cv2.IMREAD_COLOR)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        ori_shape = img.shape[:2]
-        # Load the annotation.
-        img, bboxes = self._transform(trainsize,trainsize,img, bboxes)
-        list_grids = transform.preprocess(bboxes, labels, img.shape[:2], class_num=len(self.labels), anchors=self.anchors)
-        pad_scale = (1, 1)
-        img_batch.append(img)
-        imgpath_batch.append(imgpath)
-        annpath_batch.append(annpath)
-        ori_shape_batch.append(ori_shape)
-        pad_scale_batch.append(pad_scale)
-        grid0_batch.append(list_grids[0])
-        grid1_batch.append(list_grids[1])
-        grid2_batch.append(list_grids[2])
-
-      yield np.array(img_batch).astype(np.float32), \
-            imgpath_batch, \
-            annpath_batch, \
-            np.array(pad_scale_batch).astype(np.float32), \
-            np.array(ori_shape_batch).astype(np.float32), \
-            np.array(grid0_batch).astype(np.float32), \
-            np.array(grid1_batch).astype(np.float32), \
-            np.array(grid2_batch).astype(np.float32), \
+      yield self._load_batch(idx_batch,trainsize)
 
 
 
