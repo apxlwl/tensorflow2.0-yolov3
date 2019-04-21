@@ -36,13 +36,13 @@ class EvaluatorVOC(Evaluator):
         self.rec_pred[nms_labels[i]].append(rec)
       if visualize and len(self.visual_imgs) < self.num_visual:
         _, boxGT, labelGT, _ = PascalVocXmlParser(str(annpath), self.cateNames).parse()
+        boxGT=np.array(boxGT)
+        labelGT=np.array(labelGT)
         self.append_visulize(imgpath, nms_boxes, nms_labels, nms_scores, boxGT, labelGT)
 
   def evaluate(self):
     aps = []
     for idx, cls in enumerate(self.cateNames):
-      # if idx != 14:
-      #   continue
       if len(self.rec_pred[idx]) > 0:
         _recs_pre = self.rec_pred[idx]
         num_recs_pre = len(_recs_pre)
@@ -110,11 +110,8 @@ class EvaluatorVOC(Evaluator):
         ap = self.voc_ap(rec, prec, self.use_07_metric)
       else:
         ap = -1.
-      print("AP for {}: {:.4f}".format(cls, ap))
       aps.append(ap)
-    print('Mean AP = {:.4f}'.format(np.mean(aps)))
-    aps.append(np.mean(aps))
-    return aps
+    return [np.mean(aps)]+aps
   def build_GT(self):
     filepath = os.path.join(self.dataset_root, 'VOC2007', 'ImageSets', 'Main', 'test.txt')
     with open(filepath, 'r') as f:

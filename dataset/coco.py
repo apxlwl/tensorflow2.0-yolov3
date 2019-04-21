@@ -3,9 +3,9 @@ import os.path as osp
 import cv2
 import numpy as np
 from dataset.pycocotools.coco import COCO
-from dataset import transform
+from dataset.augment import transform
 import tensorflow as tf
-from base import COCO_LABEL,COCO_ANCHOR,TRAIN_INPUT_SIZES
+from config import COCO_ANCHOR,TRAIN_INPUT_SIZES
 import random
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -141,14 +141,14 @@ class COCOdataset(object):
             np.array(grid2_batch).astype(np.float32)
 
 def get_dataset(dataset_root,batch_size,net_size):
-  datatransform = transform.YOLO3DefaultValTransform(mean=(0,0,0),std=(1,1,1))
+  datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
   valset = COCOdataset(dataset_root,datatransform,subset='val',shuffle=False,batchsize=batch_size,netsize=net_size)
   valset = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
                                             tf.float32)))
   valset = valset.batch(1).prefetch(tf.data.experimental.AUTOTUNE)
 
-  datatransform = transform.YOLO3DefaultTrainTransform(mean=(0,0,0),std=(1,1,1))
+  datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   trainset = COCOdataset(dataset_root,datatransform,subset='train',shuffle=True,batchsize=batch_size,netsize=net_size)
   trainset = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string, tf.float32, tf.float32, tf.float32, tf.float32,
@@ -160,8 +160,7 @@ def get_dataset(dataset_root,batch_size,net_size):
 
 
 if __name__ == '__main__':
-  import json
-  import matplotlib.pyplot as plt
+  pass
   # cluster('/home/gwl/datasets/coco2017',9)
   # train, val = get_dataset('/home/gwl/datasets/coco2017',8)
   # for i, inputs in enumerate(val):

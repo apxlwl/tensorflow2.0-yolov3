@@ -1,8 +1,7 @@
-import tensorflow as tf
 import numpy as np
 from utils.dataset_util import get_filelists, PascalVocXmlParser
 import cv2
-from dataset import transform
+from dataset.augment import transform
 import tensorflow as tf
 import os
 from utils.dataset_util import DataGenerator
@@ -53,7 +52,7 @@ def get_dataset(config):
   valset = valset.batch(config['batch_size']).prefetch(tf.data.experimental.AUTOTUNE)
 
   config["subset"] = 'train'
-  datatransform = transform.YOLO3DefaultTrainTransform(height=416,width=416,mean=(0,0,0),std=(1,1,1))
+  datatransform = transform.YOLO3DefaultTrainTransform(height=416, width=416, mean=(0, 0, 0), std=(1, 1, 1))
   trainset = PascalDataset(config,datatransform)
   generator = DataGenerator(trainset,shuffle=True)
   trainset = tf.data.Dataset.from_generator(generator,
@@ -66,7 +65,7 @@ def get_dataset(config):
 
 if __name__ == '__main__':
   import json
-  import matplotlib.pyplot as plt
+
   with open('../configs/face.json', 'r') as f:
     configs = json.load(f)
   configs['dataset']['batch_size']=2

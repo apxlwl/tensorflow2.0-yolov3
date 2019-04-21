@@ -1,13 +1,10 @@
-import tensorflow as tf
 import numpy as np
-from utils.dataset_util import get_filelists, PascalVocXmlParser
+from utils.dataset_util import PascalVocXmlParser
 import cv2
-from dataset import transform
+from dataset.augment import transform
 import tensorflow as tf
 import os
-from utils.dataset_util import DataGenerator
-from utils.visualize import visualize_boxes
-from base import VOC_LABEL,VOC_ANCHOR,TRAIN_INPUT_SIZES
+from config import VOC_LABEL,VOC_ANCHOR,TRAIN_INPUT_SIZES
 import random
 tf.config.gpu.set_per_process_memory_growth(True)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -107,7 +104,6 @@ def get_dataset(dataset_root,batch_size,net_size):
 
 
 if __name__ == '__main__':
-  import json
   import matplotlib.pyplot as plt
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
   subset = [('2007', 'trainval'), ('2012', 'trainval')]

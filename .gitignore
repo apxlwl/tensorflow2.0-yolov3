@@ -7,3 +7,4 @@ compare/
 *.png
 legacy/
 logresults/
+*mine.py

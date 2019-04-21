@@ -36,7 +36,7 @@ class Evaluator:
 
     scoreGT = np.ones(shape=(labelGT.shape[0],))
     visualize_boxes(image=imPre, boxes=boxesPre, labels=labelsPre, probs=scoresPre, class_labels=self.cateNames)
-    visualize_boxes(image=imGT, boxes=np.array(boxGT), labels=np.array(labelGT), probs=np.array(scoreGT),
+    visualize_boxes(image=imGT, boxes=boxGT, labels=labelGT, probs=scoreGT,
                     class_labels=self.cateNames)
     whitepad = np.zeros(shape=(imPre.shape[0], 10, 3), dtype=np.uint8)
     imshow = np.concatenate((imGT, whitepad, imPre), axis=1)

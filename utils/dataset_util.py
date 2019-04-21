@@ -66,16 +66,3 @@ class PascalVocXmlParser(object):
   def _tree(self, fname):
     tree = parse(fname)
     return tree
-
-class DataGenerator:
-  def __init__(self, dataset, shuffle=False):
-    self.dataset = dataset
-    self.shuffle = shuffle
-
-  def __call__(self):
-    indices = np.arange(len(self.dataset))
-    if self.shuffle:
-      np.random.shuffle(indices)
-    for img_idx in indices:
-      img, imgpath, scale, ori_shape, label0, label1, label2 = self.dataset[img_idx]
-      yield img, imgpath, scale, ori_shape, label0, label1, label2
