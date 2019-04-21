@@ -56,7 +56,7 @@ class Trainer(BaseTrainer):
     self.LossClass.update_state(loss_class)
     return outputs
 
-  def _valid_epoch(self,multiscale=True,flip=True):
+  def _valid_epoch(self,multiscale=False,flip=False):
     s=time.time()
     for idx_batch, inputs in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
@@ -75,24 +75,24 @@ class Trainer(BaseTrainer):
         grids = self.model(pyramid, training=False)
         for imgidx in range(imgs.shape[0]):
           img2multi[imgidx].append([grid[imgidx] for grid in grids])
+
       #append prediction for each image per scale/flip
       for imgidx,scalegrids in img2multi.items():
         allboxes=[]
         allscores=[]
-        for _grids,_scale in zip(scalegrids[:len(TEST_INPUT_SIZES)],TEST_INPUT_SIZES):
+        for _grids,_scale in zip(scalegrids[:len(INPUT_SIZES)],TEST_INPUT_SIZES):
           _boxes, _scores = predict_yolo(_grids, self.anchors, (_scale,_scale), ori_shapes[imgidx],
                                          padscale=padscale[imgidx], num_classes=20)
           allboxes.append(_boxes)
           allscores.append(_scores)
         if flip:
-          for _grids, _scale in zip(scalegrids[len(TEST_INPUT_SIZES):], TEST_INPUT_SIZES):
+          for _grids, _scale in zip(scalegrids[len(INPUT_SIZES):], INPUT_SIZES):
             _boxes, _scores = predict_yolo(_grids, self.anchors, (_scale, _scale), ori_shapes[imgidx],
                                            padscale=padscale[imgidx], num_classes=20)
             _boxes = bbox_flip(tf.squeeze(_boxes).numpy(), flip_x=True, size=ori_shapes[imgidx][::-1])
             _boxes = _boxes[np.newaxis,:]
             allboxes.append(_boxes)
             allscores.append(_scores)
-
         #TODO change nms input to y1x1y2x2
         nms_boxes, nms_scores, nms_labels=gpu_nms(tf.concat(allboxes,axis=1),tf.concat(allscores,axis=1),num_classes=self.num_classes)
         self.TESTevaluator.append(imgpath[imgidx].numpy(),

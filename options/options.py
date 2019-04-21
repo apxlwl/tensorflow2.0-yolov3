@@ -7,7 +7,7 @@ class Options():
     parser.add_argument('--dataset_name', default='COCO')
     parser.add_argument('--dataset_root',type=str)
     parser.add_argument('--pretrained_model',type=str,default='/home/gwl/PycharmProjects/mine/tf2-yolo3/checkpoints/darknet_coco')
-
+    parser.add_argument('--gpu', default='0') #options:['load_darknet','load_yolov3',int]
     # Optimization options
     parser.add_argument('--resume', default=None) #options:['load_darknet','load_yolov3',int]
     parser.add_argument('--total_epoch', type=int, default=100, help='Number of epochs to train.')
@@ -36,4 +36,9 @@ class Options():
     # important
     parser.add_argument('--freeze_darknet', action='store_true')
     parser.add_argument('--net_size', type=int ,default=416)
+    #Test augmentation
+    parser.add_argument('--fliptest',action='store_true')
+    parser.add_argument('--multitest',action='store_true')
+
     self.opt = parser.parse_args()
+

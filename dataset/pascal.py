@@ -15,7 +15,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 
 class VOCdataset:
-  def __init__(self, dataset_root,transform,subset,batchsize,shuffle,netsize):
+  def __init__(self, dataset_root,transform,subset,batchsize,netsize,shuffle):
     self.dataset_root = dataset_root
     self.labels = VOC_LABEL
     self.anchors = np.array(VOC_ANCHOR)
@@ -87,7 +87,7 @@ class VOCdataset:
 def get_dataset(dataset_root,batch_size,net_size):
   subset = [('2007', 'test')]
   datatransform = transform.YOLO3DefaultValTransform(mean=(0, 0, 0), std=(1, 1, 1))
-  valset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=False)
+  valset = VOCdataset(dataset_root, datatransform,subset,batch_size,net_size,shuffle=False)
 
   valset_iter = tf.data.Dataset.from_generator(valset,
                                           ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
@@ -96,7 +96,7 @@ def get_dataset(dataset_root,batch_size,net_size):
 
   subset = [('2007', 'trainval'), ('2012', 'trainval')]
   datatransform = transform.YOLO3DefaultTrainTransform(mean=(0, 0, 0), std=(1, 1, 1))
-  trainset = VOCdataset(dataset_root, datatransform,subset,batch_size,shuffle=True)
+  trainset = VOCdataset(dataset_root, datatransform,subset,batch_size,net_size,shuffle=True)
   trainset_iter = tf.data.Dataset.from_generator(trainset,
                                             ((tf.float32, tf.string,tf.string, tf.float32, tf.float32,
                                               tf.float32, tf.float32,tf.float32)))
