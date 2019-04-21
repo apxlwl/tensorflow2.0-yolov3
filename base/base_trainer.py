@@ -40,7 +40,7 @@ class BaseTrainer:
     self.LossBox = None
     self.LossConf = None
     self.LossClass = None
-
+    self.logger_custom=None
     self.num_classes = len(self.labels)
 
     self._get_model()
@@ -57,7 +57,6 @@ class BaseTrainer:
       self._load_checkpoint()
 
   def _load_checkpoint(self):
-    # TODO add a dummy step
     if self.args.resume == "load_darknet":
       self.model.load_darknet_params(os.path.join(self.args.pretrained_model,
                                                   'darknet53.conv.74'), skip_detect_layer=True, body=True)
@@ -83,14 +82,13 @@ class BaseTrainer:
   def _get_SummaryWriter(self):
     if not self.args.debug and not self.args.do_test:
       ensure_dir(os.path.join('./summary/', self.experiment_name))
-      self.trainwriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
+      self.summarywriter = summary.create_file_writer(logdir='./summary/{}/{}/train'.format(self.experiment_name,
                                                                                           time.strftime(
                                                                                             "%m%d-%H-%M-%S",
                                                                                             time.localtime(
                                                                                               time.time()))))
 
   def _get_dataset(self):
-    print(self.net_size)
     self.train_dataloader, self.test_dataloader = eval('get_{}'.format(self.dataset_name))(
       dataset_root=self.dataset_root,
       batch_size=self.args.batch_size,
@@ -101,6 +99,20 @@ class BaseTrainer:
     for epoch in range(self.global_epoch.numpy(), self.args.total_epoch):
       self.global_epoch.assign_add(1)
       self._train_epoch()
+      results, imgs = self._valid_epoch(multiscale=False, flip=False)
+
+      with self.summarywriter.as_default():
+        current_lr = self.optimizer._get_hyper('learning_rate')(self.optimizer._iterations)
+        tf.summary.scalar("learning_rate", current_lr, step=self.global_iter.numpy())
+        for k, v in zip(self.logger_custom, results):
+          tf.summary.scalar(k, v, step=self.global_iter.numpy())
+        for k, v in self.logger_losses.items():
+          tf.summary.scalar(k, v.result(), step=self.global_iter.numpy())
+        for i in range(len(imgs)):
+          tf.summary.image("detections_{}".format(i), tf.expand_dims(tf.convert_to_tensor(imgs[i]), 0),
+                           step=self.global_iter.numpy())
+      self._reset_loggers()
+      self.ckpt_manager.save(self.global_epoch)
 
   def _get_loggers(self):
     self.LossBox = metrics.Mean()
@@ -117,7 +129,6 @@ class BaseTrainer:
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
@@ -131,9 +142,17 @@ class BaseTrainer:
     self.LossConf.update_state(loss_conf)
     self.LossClass.update_state(loss_class)
 
-
+  # @tf.function
   def _train_epoch(self):
-    raise NotImplementedError
+    for i, inputs in enumerate(self.train_dataloader):
+      inputs = [tf.squeeze(input, axis=0) for input in inputs]
+      img, _, _, _, _, *labels = inputs
+      self.global_iter.assign_add(1)
+      if self.global_iter.numpy() % 10 == 0:
+        tf.print(self.global_iter.numpy())
+        for k, v in self.logger_losses.items():
+          tf.print(k, ":", v.result().numpy())
+      self.train_step(img, labels)
 
   def _valid_epoch(self,multiscale,flip):
     for idx_batch, inputs in enumerate(self.test_dataloader):

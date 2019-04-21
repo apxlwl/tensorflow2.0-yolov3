@@ -64,6 +64,14 @@ class VOCdataset:
       grid0_batch.append(list_grids[0])
       grid1_batch.append(list_grids[1])
       grid2_batch.append(list_grids[2])
+    return np.array(img_batch).astype(np.float32), \
+           imgpath_batch, \
+           annpath_batch, \
+           np.array(pad_scale_batch).astype(np.float32), \
+           np.array(ori_shape_batch).astype(np.float32), \
+           np.array(grid0_batch).astype(np.float32), \
+           np.array(grid1_batch).astype(np.float32), \
+           np.array(grid2_batch).astype(np.float32)
   def __call__(self):
     indices = np.arange(len(self._ids))
     if self.shuffle:

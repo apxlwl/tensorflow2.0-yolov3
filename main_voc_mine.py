@@ -13,6 +13,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 opt = Options()
 args = opt.opt
 args.experiment_name = 'test'
+args.gpu='1'
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu 
 args.dataset_name='VOC'
 args.dataset_root='/home/gwl/datasets/VOCdevkit'

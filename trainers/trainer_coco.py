@@ -15,8 +15,8 @@ class Trainer(BaseTrainer):
                                        score_thres=0.01,
                                        iou_thres=0.5,
                                        )
-
-    self.logger_coco = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
+    # get customized loggers
+    self.logger_custom = ['mAP', 'mAp@50', 'mAP@75', 'mAP@small', 'mAP@meduim', 'mAP@large',
                         'AR@1', 'AR@10', 'AR@100', 'AR@small', 'AR@medium', 'AR@large']
 
 
@@ -25,7 +25,7 @@ class Trainer(BaseTrainer):
     return results, imgs
 
   def _train_epoch(self):
-    with self.trainwriter.as_default():
+    with self.summarywriter.as_default():
       for i, (img, imgpath,annpath, scale, ori_shapes, *labels) in enumerate(self.train_dataloader):
         self.global_iter.assign_add(1)
 
