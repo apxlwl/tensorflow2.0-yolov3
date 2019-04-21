@@ -129,6 +129,7 @@ class BaseTrainer:
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
+  @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
@@ -202,5 +203,4 @@ class BaseTrainer:
                                   nms_labels.numpy())
     results = self.TESTevaluator.evaluate()
     imgs = self.TESTevaluator.visual_imgs
-    print(results)
     return results, imgs
