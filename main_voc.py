@@ -11,7 +11,12 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 opt = Options()
 args = opt.opt
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-args.experiment_name = 'yolov3'
+args.experiment_name = 'yolov3_voc'
+args.total_epoch = 150
+args.dataset_root='/home/gwl/datasets/VOCdevkit'
+args.dataset_name='VOC'
+# args.resume = 'load_darknet'
+# args.net_size=480
 net = Yolonet(n_classes=20,freeze_backbone=args.freeze_darknet)
 
 #the total size of your dataset

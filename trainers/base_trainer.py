@@ -170,6 +170,8 @@ class BaseTrainer:
     for idx_batch, inputs in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
         break
+      if idx_batch==5:
+        break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, padscale, ori_shapes, *_) = inputs
       if not multiscale:

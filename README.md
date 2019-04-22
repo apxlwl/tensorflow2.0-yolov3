@@ -8,30 +8,32 @@ A Tensorflow2.0 implementation of YOLOv3
 2. Download COCO dataset
 3. Modify the dataset root and weights root in the config file
 ```
-python main.py --experiment_name xxx --dataset_name COCO --resume load_yolov3 --do_test --net_size 608 --batch_size 8 
+python main_coco.py --resume load_yolov3 --do_test --net_size 608 --batch_size 8
 ```
 
 ## Training
 1. run the following command to start training
 ```
-python main.py --experiment_name dummy_name
+python main_voc.py/main_coco.py --resume load_darknet --net_size 480 --batch_size 8
 ```
 
 
 2. The ckpt file will be stored in the ./checkpoints/dummy_name named with epoch number and use --resume xyz to resume from the xyz epoch
 
-3. The summary file is stored in the  ./summary/dummy_name and origanized like [TF-ObjectDection-API](https://github.com/tensorflow/models/tree/master/research/object_detection)
 
+## Visualization
+The Tensorboard is origanized like [TF-ObjectDection-API](https://github.com/tensorflow/models/tree/master/research/object_detection)
+![GT VS Prediction across time]()
 ## Performance 
 | Model | Initial weight | basic resolution |VOC2007 Test(mAP) |
 | ------ | ------ | ------ | ------ |
 | YoloV3 | Darknet53 | 512|0.7796 |
 
-## Suppported Attributes
+## Supported Attributes
 - [x] Data agumentation  
 - [x] Multi-scale Training 
-- [x] Multi-scale Testing(includingg flip)
-- [ ] Focal loss  
+- [x] Multi-scale Testing(including flip)
+- [x] Focal loss  
 - [ ] ....
 ## TODO
 - [x] Update VOC performance
@@ -45,3 +47,5 @@ python main.py --experiment_name dummy_name
 [tf-eager-yolo3](https://github.com/penny4860/tf-eager-yolo3)
 
 [keras-yolo3](https://github.com/qqwweee/keras-yolo3)
+
+[stronger-yolo](https://github.com/Stinky-Tofu/Stronger-yolo)
