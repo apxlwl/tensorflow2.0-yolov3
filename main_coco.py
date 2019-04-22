@@ -12,6 +12,12 @@ opt = Options()
 args = opt.opt
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 args.experiment_name = 'yolov3'
+args.experiment_name = 'coco_multi'
+args.total_epoch = 100
+args.dataset_root='/home/gwl/datasets/coco2017'
+args.dataset_name='COCO'
+# args.resume = 'load_yolov3'
+# args.net_size=608
 net = Yolonet(n_classes=80,freeze_backbone=args.freeze_darknet)
 
 #the total size of your dataset

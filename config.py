@@ -117,7 +117,18 @@ VOC_ANCHOR_512 = [
   [214, 380],
   [428, 430]
 ]
-
+#VOC_ANCHOR under 480 resolution
+VOC_ANCHOR_480 = [
+  [18, 33],
+  [31, 89],
+  [55, 50],
+  [59, 163],
+  [106, 106],
+  [114, 246],
+  [264, 193],
+  [200, 356],
+  [401, 403]
+]
 VOC_LABEL = [
   "aeroplane",
   "bicycle",
@@ -142,4 +153,4 @@ VOC_LABEL = [
 ]
 
 TRAIN_INPUT_SIZES_COCO = [320, 352, 384, 416, 448]
-TRAIN_INPUT_SIZES_VOC = [320, 352, 384, 416, 448, 480, 512]
+TRAIN_INPUT_SIZES_VOC = [320, 352, 384, 416, 448, 480]

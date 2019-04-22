@@ -141,7 +141,7 @@ class BaseTrainer:
     self.LossConf.reset_states()
     self.LossBox.reset_states()
 
-  @tf.function
+  # @tf.function
   def train_step(self, imgs, labels):
     with tf.GradientTape() as tape:
       outputs = self.model(imgs, training=True)
@@ -169,9 +169,6 @@ class BaseTrainer:
   def _valid_epoch(self,multiscale,flip):
     for idx_batch, inputs in enumerate(self.test_dataloader):
       if idx_batch == self.args.valid_batch and not self.args.do_test:  # to save time
-        break
-
-      if idx_batch==50:
         break
       inputs = [tf.squeeze(input, axis=0) for input in inputs]
       (imgs, imgpath, annpath, padscale, ori_shapes, *_) = inputs

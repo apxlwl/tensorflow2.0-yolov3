@@ -25,12 +25,13 @@ def process_output(feature_map, anchors, input_shape, num_classes, training=True
   box_conf = tf.nn.sigmoid(conf_logits)
   box_prob = tf.nn.sigmoid(prob_logits)
   if training:
-    return xy_offset, feature_map, box_centers, box_wh
+    return xy_offset, feature_map, box_centers, box_wh, box_conf
   else:
     return box_centers, box_wh, box_conf, box_prob
 
+
 @tf.function
-def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_classes):
+def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale, num_classes):
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
   boxes = []
@@ -39,7 +40,8 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_c
   for idx in range(3):
     _feature, _anchor = feature_map_list[idx], anchors[idx]
     _feature = tf.expand_dims(_feature, 0)
-    _boxes_center, _boxes_wh, _conf, _classes = process_output(_feature, _anchor, inputshape, training=False,num_classes=num_classes)
+    _boxes_center, _boxes_wh, _conf, _classes = process_output(_feature, _anchor, inputshape, training=False,
+                                                               num_classes=num_classes)
     _score = tf.reshape(_conf * _classes, [1, -1, num_classes])
 
     _boxes_center = _boxes_center / padscale[::-1] * imgshape[::-1]
@@ -58,13 +60,14 @@ def predict_yolo(feature_map_list, anchors, inputshape, imgshape, padscale,num_c
   x_max = center_x + width / 2
   y_max = center_y + height / 2
   allboxes = tf.concat([x_min, y_min, x_max, y_max], axis=-1)
-  return allboxes,allscores
-  # nms_boxes, nms_scores, labels = gpu_nms(allboxes, allscores, num_classes)
-  # #y1x1y2x2
-  # return nms_boxes, nms_scores, labels
+  return allboxes, allscores
 
 
-def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):
+
+def loss_yolo(feature_map_list, gt_list, anchors, inputshape, num_classes):
+  def focal_loss(target, pred, alpha=1, gamma=2):
+    return alpha * tf.pow(tf.abs(target - pred), gamma)
+
   anchors = tf.reshape(tf.convert_to_tensor(anchors), (3, 3, 2))
   anchors = tf.cast(anchors, tf.float32)
   inputshape = tf.cast(inputshape, tf.float32)
@@ -79,7 +82,8 @@ def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):
     _object_mask = _gt[..., 4:5]
     _true_class_probs = _gt[..., 5:]
 
-    _xy_offset, _feature, _box_centers, _box_wh = process_output(_featurelist, _anchor, inputshape,num_classes=num_classes)
+    _xy_offset, _feature, _box_centers, _box_wh, _box_conf = process_output(_featurelist, _anchor, inputshape,
+                                                                            num_classes=num_classes)
 
     # get ignoremask
     _valid_true_boxes = tf.boolean_mask(_gt[..., 0:4], tf.cast(_object_mask[..., 0], 'bool'))
@@ -94,17 +98,19 @@ def loss_yolo(feature_map_list, gt_list, anchors, inputshape,num_classes):
 
     _raw_true_xy = _gt[..., :2] * _grid_shape[::-1] - _xy_offset
     _raw_true_wh = _gt[..., 2:4] / _anchor * inputshape[::-1]
-    _raw_true_wh = tf.where(condition=tf.equal(_raw_true_wh,0),x=tf.ones_like(_raw_true_wh),y=_raw_true_wh)
+    _raw_true_wh = tf.where(condition=tf.equal(_raw_true_wh, 0), x=tf.ones_like(_raw_true_wh), y=_raw_true_wh)
     _raw_true_wh = tf.math.log(_raw_true_wh)
     _box_loss_scale = 2 - _gt[..., 2:3] * _gt[..., 3:4]
 
-    _xy_loss=_object_mask*_box_loss_scale*tf.nn.sigmoid_cross_entropy_with_logits(labels=_raw_true_xy,logits=_feature[...,0:2])
-    # _xy_loss = _object_mask * _box_loss_scale * 0.5 * tf.square(_raw_true_xy-tf.nn.sigmoid(_feature[..., 0:2]))
+    _xy_loss = _object_mask * _box_loss_scale * tf.nn.sigmoid_cross_entropy_with_logits(labels=_raw_true_xy,
+                                                                                        logits=_feature[..., 0:2])
     _wh_loss = _object_mask * _box_loss_scale * 0.5 * tf.square(_raw_true_wh - _feature[..., 2:4])
-    _conf_loss = _object_mask * tf.nn.sigmoid_cross_entropy_with_logits(labels=_object_mask,
-                                                                        logits=_feature[..., 4:5]) + \
-                 (1 - _object_mask) * tf.nn.sigmoid_cross_entropy_with_logits(labels=_object_mask,
-                                                                              logits=_feature[..., 4:5]) * _ignore_mask
+    _focal_scale = focal_loss(target=_object_mask, pred=_box_conf)
+    _conf_loss = _focal_scale * \
+                 (_object_mask * tf.nn.sigmoid_cross_entropy_with_logits(labels=_object_mask,
+                                                                         logits=_feature[..., 4:5]) +
+                  (1 - _object_mask) * _ignore_mask * tf.nn.sigmoid_cross_entropy_with_logits(labels=_object_mask,
+                                                                                              logits=_feature[...,4:5]))
     _class_loss = _object_mask * tf.nn.sigmoid_cross_entropy_with_logits(labels=_true_class_probs,
                                                                          logits=_feature[..., 5:])
     batch_box += tf.reduce_sum(_xy_loss) / batchsize
