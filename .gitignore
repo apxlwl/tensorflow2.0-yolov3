@@ -4,7 +4,6 @@
 checkpoints/
 summary/
 compare/
-*.png
 legacy/
 logresults/
 *mine.py
